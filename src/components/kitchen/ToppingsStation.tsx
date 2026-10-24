@@ -56,6 +56,10 @@ export function ToppingsStation() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [strokePath, setStrokePath] = useState<{ x: number; y: number }[]>([])
+  // Ref mirror of strokePath so endStroke always reads the latest points
+  // (avoids stale-closure bug where pointerup fires before React commits
+  // the state updates from pointermove).
+  const strokePathRef = useRef<{ x: number; y: number }[]>([])
 
   const selectedTopping = selectedToppingId
     ? TOPPINGS.find((t) => t.id === selectedToppingId)
@@ -117,10 +121,15 @@ export function ToppingsStation() {
       if (e.pointerType === "touch") {
         e.preventDefault()
       }
-      (e.target as Element).setPointerCapture(e.pointerId)
-      setIsApplying(true)
+      try {
+        (e.target as Element).setPointerCapture(e.pointerId)
+      } catch {}
       const p = getCanvasPoint(e.clientX, e.clientY)
+      // Set BOTH the state (for the live stroke preview SVG) and the ref
+      // (for endStroke to read the latest value synchronously).
+      strokePathRef.current = [p]
       setStrokePath([p])
+      setIsApplying(true)
 
       // For "place" method, apply immediately and end
       if (selectedTopping.method === "place") {
@@ -132,6 +141,7 @@ export function ToppingsStation() {
           rotation: Math.random() * 360,
         })
         setIsApplying(false)
+        strokePathRef.current = []
         setStrokePath([])
       }
     },
@@ -145,12 +155,15 @@ export function ToppingsStation() {
         e.preventDefault()
       }
       const p = getCanvasPoint(e.clientX, e.clientY)
-      setStrokePath((prev) => {
-        const last = prev[prev.length - 1]
-        // Throttle: only add a point if it moved enough
-        if (last && Math.hypot(p.x - last.x, p.y - last.y) < 2) return prev
-        return [...prev, p]
-      })
+      // Update the ref synchronously (this is the source of truth for endStroke)
+      const prev = strokePathRef.current
+      const last = prev[prev.length - 1]
+      // Throttle: only add a point if it moved enough
+      if (!last || Math.hypot(p.x - last.x, p.y - last.y) >= 2) {
+        const next = [...prev, p]
+        strokePathRef.current = next
+        setStrokePath(next)
+      }
 
       // For scatter/dust methods, apply small topping instances at intervals along the stroke.
       // Particles are pre-computed ONCE here at apply-time so the render is deterministic
@@ -183,24 +196,28 @@ export function ToppingsStation() {
           (e.target as Element).releasePointerCapture(e.pointerId)
         } catch {}
       }
-      // For drizzle/pipe methods, store the full stroke as a path
-      if (isApplying && strokePath.length > 1) {
-        const method = selectedTopping.method
+      // Read the LATEST stroke path from the ref (not the stale closure state).
+      // This fixes the bug where pointerup fires before React commits the
+      // pointermove state updates, leaving strokePath empty in the closure.
+      const path = strokePathRef.current
+      const method = selectedTopping.method
+
+      if (path.length > 1) {
         if (method === "drizzle" || method === "pipe") {
           // Apply as a single stroke path
-          const start = strokePath[0]
+          const start = path[0]
           applyTopping({
             toppingId: selectedTopping.id,
             x: start.x,
             y: start.y,
             amount: toppingBrushSize,
             rotation: 0,
-            path: strokePath,
+            path,
           })
         } else if (method === "layer") {
           // Layer = broad even coat, apply once at centroid
-          const cx = strokePath.reduce((a, p) => a + p.x, 0) / strokePath.length
-          const cy = strokePath.reduce((a, p) => a + p.y, 0) / strokePath.length
+          const cx = path.reduce((a, p) => a + p.x, 0) / path.length
+          const cy = path.reduce((a, p) => a + p.y, 0) / path.length
           applyTopping({
             toppingId: selectedTopping.id,
             x: cx,
@@ -211,8 +228,8 @@ export function ToppingsStation() {
         } else if (method === "dust" || method === "scatter") {
           // Final stroke for dust/scatter — emit one larger cluster at the centroid
           // with pre-computed particles so the render stays stable.
-          const cx = strokePath.reduce((a, p) => a + p.x, 0) / strokePath.length
-          const cy = strokePath.reduce((a, p) => a + p.y, 0) / strokePath.length
+          const cx = path.reduce((a, p) => a + p.x, 0) / path.length
+          const cy = path.reduce((a, p) => a + p.y, 0) / path.length
           const amt = toppingBrushSize
           const baseSize = 12 + amt * 22
           applyTopping({
@@ -224,11 +241,25 @@ export function ToppingsStation() {
             particles: generateToppingParticles(method, amt, baseSize),
           })
         }
+      } else if (path.length === 1 && (method === "dust" || method === "scatter")) {
+        // Single tap (no drag) for dust/scatter — apply one cluster at the tap point
+        const p = path[0]
+        const amt = toppingBrushSize
+        const baseSize = 12 + amt * 22
+        applyTopping({
+          toppingId: selectedTopping.id,
+          x: p.x,
+          y: p.y,
+          amount: amt,
+          rotation: Math.random() * 360,
+          particles: generateToppingParticles(method, amt, baseSize),
+        })
       }
       setIsApplying(false)
+      strokePathRef.current = []
       setStrokePath([])
     },
-    [isApplying, selectedTopping, strokePath, toppingBrushSize, applyTopping]
+    [selectedTopping, toppingBrushSize, applyTopping]
   )
 
   // Prevent the whole page from scrolling on touch when interacting with canvas
@@ -267,7 +298,6 @@ export function ToppingsStation() {
           onPointerMove={continueStroke}
           onPointerUp={endStroke}
           onPointerCancel={endStroke}
-          onPointerLeave={endStroke}
         >
           {/* Ambient sunbeam */}
           <div className="absolute inset-0 sunbeam pointer-events-none" />
