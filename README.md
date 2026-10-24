@@ -1,10 +1,10 @@
-# 🧑‍🍳 Master Baker VR — Virtual Baking Kitchen for Kids
+# 🧑‍🍳 HIRA Bakery — Modern Virtual Baking Kitchen
 
-A photorealistic, interactive virtual baking kitchen that teaches kids real cooking science through play. Built with Next.js 16, TypeScript, Tailwind CSS, and Framer Motion. Designed for desktop and iPad (touch-friendly).
+A modern, photorealistic virtual baking kitchen that teaches kids real cooking science through play. Built with Next.js 16, TypeScript, Tailwind CSS, and Framer Motion. Designed for desktop and iPad (touch-friendly).
 
 > **Ages 7+** · Learn kitchen science, earn badges, and bake amazing treats — all in your browser.
 
-![Master Baker VR](download/screenshots/learning-bench.png)
+![HIRA Bakery](download/screenshots/learning-bench.png)
 
 ---
 

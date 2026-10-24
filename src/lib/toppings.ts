@@ -1,4 +1,4 @@
-// Master Baker VR — Topping Material Library
+// HIRA Bakery — Topping Material Library
 // Toppings are applied AFTER baking (finishing/decoration).
 // Each topping has a visual rendering strategy and a tactile application method.
 

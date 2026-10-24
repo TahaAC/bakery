@@ -115,7 +115,7 @@ export function RecipeExporter() {
           <div className="flex items-start justify-between gap-4 pb-3 border-b-2 border-dashed border-border">
             <div className="flex-1">
               <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">
-                Master Baker VR · Recipe Card
+                HIRA Bakery · Recipe Card
               </div>
               <Input
                 value={recipeName}
@@ -258,8 +258,8 @@ export function RecipeExporter() {
 
           {/* Footer */}
           <div className="mt-4 pt-3 border-t border-dashed border-border text-[10px] text-muted-foreground flex justify-between">
-            <span>Master Baker VR · Virtual-to-Real Recipe Exporter</span>
-            <span>Recipe ID: MBVR-{Date.now().toString(36).slice(-6).toUpperCase()}</span>
+            <span>HIRA Bakery · Virtual-to-Real Recipe Exporter</span>
+            <span>Recipe ID: HIRA-{Date.now().toString(36).slice(-6).toUpperCase()}</span>
           </div>
         </div>
 
@@ -370,7 +370,7 @@ function formatRecipeText(
   const bakeMin = Math.round(ovenTimerTotal / 60)
   const lines: string[] = []
   lines.push(`═══════════════════════════════════════`)
-  lines.push(`  MASTER BAKER VR — RECIPE CARD`)
+  lines.push(`  HIRA BAKERY — RECIPE CARD`)
   lines.push(`═══════════════════════════════════════`)
   lines.push(``)
   lines.push(`Name: ${name}`)
@@ -413,6 +413,6 @@ function formatRecipeText(
   lines.push(`· Oven temperatures vary — calibrate with an oven thermometer.`)
   lines.push(`· Rest dough 10 min if it resists shaping.`)
   lines.push(``)
-  lines.push(`Bake with care. — Master Baker VR`)
+  lines.push(`Bake with care. — HIRA Bakery`)
   return lines.join("\n")
 }

@@ -138,9 +138,11 @@ export function KitchenApp() {
               <ChefHat className="w-5 h-5 text-white" />
             </div>
             <div className="hidden sm:block">
-              <div className="text-sm font-bold leading-tight">Master Baker VR</div>
+              <div className="text-sm font-bold leading-tight tracking-tight">
+                HIRA <span className="text-primary">Bakery</span>
+              </div>
               <div className="text-[10px] text-muted-foreground leading-tight">
-                v4.0 Ultimate Photorealistic Edition
+                Modern Virtual Baking Kitchen
               </div>
             </div>
           </div>
@@ -362,7 +364,7 @@ export function KitchenApp() {
 
       {/* ─── Footer ─── */}
       <footer className="mt-auto border-t border-border bg-card/60 px-4 py-2 text-[10px] text-muted-foreground text-center print:hidden">
-        Ray-traced rendering pipeline · Physics & chemistry simulation · Recipe export — all running locally in your browser.
+        HIRA Bakery · Modern virtual baking kitchen · Physics & chemistry simulation · Recipe export — all running locally in your browser.
       </footer>
     </div>
   )

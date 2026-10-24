@@ -1,4 +1,4 @@
-// Master Baker VR — Learning Environment
+// HIRA Bakery — Learning Environment
 // Kid-friendly baking curriculum + achievement badges + fun facts.
 // Designed for ages 7+ to learn real kitchen science through play.
 

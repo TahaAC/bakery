@@ -536,7 +536,7 @@ function OvenSVG({
               />
             )}
           </div>
-          <span className="text-[10px] font-mono text-amber-300/90 tracking-wider">MASTER_BAKER_VR</span>
+          <span className="text-[10px] font-mono text-amber-300/90 tracking-wider">HIRA_BAKERY</span>
         </div>
 
         {/* Digital readout — HD VFD style */}
@@ -829,7 +829,7 @@ function OvenSVG({
           textShadow: "0 1px 0 rgba(255,255,255,0.4), 0 -1px 0 rgba(0,0,0,0.5)",
         }}
       >
-        Z.AI CULINARY · MODEL VR-300
+        HIRA CULINARY · MODEL VR-300
       </div>
 
       {/* Model badge on right */}

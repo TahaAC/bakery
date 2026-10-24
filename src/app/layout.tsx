@@ -14,16 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Master Baker VR — Virtual Baking Kitchen for Kids",
-  description: "A fun, photorealistic virtual baking kitchen that teaches kids real cooking science. Learn step-by-step with Chef Bear, earn badges, and bake amazing treats!",
-  keywords: ["baking", "kitchen", "kids learning", "cooking school", "simulation", "virtual bakery", "recipe", "chemistry", "Next.js"],
-  authors: [{ name: "Master Baker VR" }],
+  title: "HIRA Bakery — Modern Virtual Baking Kitchen",
+  description: "A modern, photorealistic virtual baking kitchen that teaches kids real cooking science. Learn step-by-step with Chef Bear, earn badges, and bake amazing treats!",
+  keywords: ["HIRA Bakery", "baking", "kitchen", "kids learning", "cooking school", "simulation", "virtual bakery", "recipe", "chemistry", "Next.js"],
+  authors: [{ name: "HIRA Bakery" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   appleWebApp: {
     capable: true,
-    title: "Master Baker VR",
+    title: "HIRA Bakery",
     statusBarStyle: "default",
   },
 };

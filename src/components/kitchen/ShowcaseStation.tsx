@@ -479,7 +479,7 @@ export function ShowcaseStation() {
             </div>
             <div className="text-lg font-bold leading-tight mt-0.5">{recipeName}</div>
             <div className="text-[10px] text-muted-foreground italic mt-0.5">
-              Master Baker VR · Signature Bake
+              HIRA Bakery · Signature Bake
             </div>
           </div>
 

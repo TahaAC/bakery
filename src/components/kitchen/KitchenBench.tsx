@@ -13,6 +13,7 @@ import {
   ChefHat,
   GraduationCap,
   Award,
+  ArrowRight,
 } from "lucide-react"
 import { useKitchen } from "@/lib/kitchen-store"
 import { BADGES, LESSONS, randomFunFact } from "@/lib/lessons"
@@ -26,95 +27,117 @@ interface BenchStation {
   emoji: string
   icon: typeof Flame
   description: string
-  /** Position on the bench in % (left, top of placement area) */
-  position: { left: string; top: string; width: string; height: string }
-  /** Color theme for the appliance */
+  /** Tailwind gradient classes for the card */
+  gradient: string
+  /** Solid accent color for icons/borders */
   accent: string
+  /** Category for visual grouping */
+  category: "learn" | "prep" | "bake" | "finish"
 }
 
 const BENCH_STATIONS: BenchStation[] = [
+  // Learn
   {
     id: "school",
     label: "Bake School",
     emoji: "🎓",
     icon: GraduationCap,
-    description: "Learn step-by-step with Chef Bear!",
-    position: { left: "2%", top: "8%", width: "20%", height: "32%" },
-    accent: "#fcd34d",
+    description: "Step-by-step lessons with Chef Bear",
+    gradient: "from-amber-50 to-amber-100",
+    accent: "#d97706",
+    category: "learn",
   },
+  // Prep
   {
     id: "pantry",
     label: "Pantry",
-    emoji: "🚪",
+    emoji: "🧺",
     icon: ShoppingBasket,
-    description: "All your ingredients",
-    position: { left: "24%", top: "8%", width: "18%", height: "32%" },
-    accent: "#c9a779",
+    description: "23 ingredients across 7 categories",
+    gradient: "from-orange-50 to-amber-100",
+    accent: "#c2410c",
+    category: "prep",
   },
   {
     id: "mixing",
     label: "Mixing Bowl",
     emoji: "🥣",
     icon: MixingIcon,
-    description: "Whisk by hand",
-    position: { left: "44%", top: "8%", width: "16%", height: "32%" },
-    accent: "#7FBED6",
+    description: "Whisk ingredients by hand",
+    gradient: "from-sky-50 to-blue-100",
+    accent: "#0369a1",
+    category: "prep",
   },
   {
     id: "mixer",
     label: "Stand Mixer",
     emoji: "🍰",
     icon: Microwave,
-    description: "Pro kneading power",
-    position: { left: "62%", top: "8%", width: "18%", height: "32%" },
-    accent: "#b0b0b8",
+    description: "Pro kneading power for dough",
+    gradient: "from-slate-50 to-zinc-100",
+    accent: "#475569",
+    category: "prep",
   },
+  // Bake
   {
     id: "oven",
     label: "Smart Oven",
     emoji: "🔥",
     icon: Flame,
-    description: "Bake with real heat",
-    position: { left: "82%", top: "8%", width: "16%", height: "32%" },
-    accent: "#b8602b",
+    description: "Bake with real-time physics",
+    gradient: "from-rose-50 to-orange-100",
+    accent: "#b91c1c",
+    category: "bake",
   },
+  // Finish
   {
     id: "toppings",
     label: "Decorating",
     emoji: "🎨",
     icon: SparklesIcon,
-    description: "Add the finishing touches",
-    position: { left: "2%", top: "58%", width: "22%", height: "32%" },
-    accent: "#E58AB8",
+    description: "Add glazes, frostings & sprinkles",
+    gradient: "from-pink-50 to-fuchsia-100",
+    accent: "#a21caf",
+    category: "finish",
   },
   {
     id: "showcase",
     label: "Showcase",
     emoji: "🎂",
     icon: Eye,
-    description: "Show off your bake",
-    position: { left: "26%", top: "58%", width: "22%", height: "32%" },
-    accent: "#fcd34d",
+    description: "Display & serve to customers",
+    gradient: "from-yellow-50 to-amber-100",
+    accent: "#a16207",
+    category: "finish",
   },
   {
     id: "sink",
     label: "Sink",
     emoji: "🚰",
     icon: Droplets,
-    description: "Wash up like a real chef",
-    position: { left: "50%", top: "58%", width: "18%", height: "32%" },
-    accent: "#7FBED6",
+    description: "Wash utensils between steps",
+    gradient: "from-cyan-50 to-sky-100",
+    accent: "#0e7490",
+    category: "finish",
   },
   {
     id: "recipe",
     label: "Recipe Card",
     emoji: "📝",
     icon: FileText,
-    description: "Print your recipe",
-    position: { left: "70%", top: "58%", width: "14%", height: "32%" },
-    accent: "#fde68a",
+    description: "Print or save your recipe",
+    gradient: "from-stone-50 to-amber-50",
+    accent: "#78350f",
+    category: "finish",
   },
 ]
+
+const CATEGORY_LABELS: Record<BenchStation["category"], { label: string; emoji: string }> = {
+  learn: { label: "Learn", emoji: "📚" },
+  prep: { label: "Prep", emoji: "🍴" },
+  bake: { label: "Bake", emoji: "🔥" },
+  finish: { label: "Finish", emoji: "✨" },
+}
 
 export function KitchenBench() {
   const setActiveStation = useKitchen((s) => s.setActiveStation)
@@ -146,311 +169,311 @@ export function KitchenBench() {
   }
 
   const handleStartFirstLesson = () => {
-    const firstLesson = LESSONS[0]
-    if (firstLesson) {
-      startLesson(firstLesson.id)
-    }
+    const nextLesson = LESSONS[completedLessons.length] ?? LESSONS[0]
+    if (nextLesson) startLesson(nextLesson.id)
+  }
+
+  // Group stations by category for organized layout
+  const stationsByCategory: Record<BenchStation["category"], BenchStation[]> = {
+    learn: BENCH_STATIONS.filter((s) => s.category === "learn"),
+    prep: BENCH_STATIONS.filter((s) => s.category === "prep"),
+    bake: BENCH_STATIONS.filter((s) => s.category === "bake"),
+    finish: BENCH_STATIONS.filter((s) => s.category === "finish"),
   }
 
   return (
-    <div className="h-full flex flex-col gap-3 overflow-hidden">
-      {/* Top: welcome / status banner */}
+    <div className="h-full flex flex-col gap-3 overflow-y-auto kitchen-scrollbar pr-1 -mr-1">
+      {/* Top hero banner — clean and modern */}
       <div
-        className="rounded-xl border-2 border-primary/30 p-3 sm:p-4 flex flex-wrap items-center gap-3 sm:gap-4"
+        className="relative rounded-2xl p-4 sm:p-5 overflow-hidden shrink-0"
         style={{
           background:
-            "linear-gradient(135deg, #fff5d8 0%, #ffe0a8 50%, #fcd34d 100%)",
-          boxShadow: "0 8px 24px -8px rgba(184, 96, 43, 0.4)",
+            "linear-gradient(135deg, #1a1410 0%, #2a1f17 40%, #b8602b 100%)",
+          boxShadow: "0 10px 30px -10px rgba(80, 50, 20, 0.5)",
         }}
       >
-        <div className="flex items-center gap-3 flex-1 min-w-[260px]">
-          <motion.div
-            animate={{ rotate: [0, -8, 8, 0], scale: [1, 1.05, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-3xl shrink-0"
-            style={{
-              background: "radial-gradient(circle at 30% 30%, #fff5d8, #b8602b)",
-              boxShadow: "0 6px 14px rgba(184, 96, 43, 0.4)",
-            }}
-          >
-            👨‍🍳
-          </motion.div>
-          <div className="min-w-0">
-            <h2 className="text-base sm:text-xl font-bold leading-tight">
-              Welcome to Your Kitchen!
-            </h2>
-            <p className="text-xs sm:text-sm text-foreground/70 leading-tight mt-0.5">
-              Tap any appliance to start baking, or visit the Bake School to learn step-by-step.
-            </p>
-          </div>
-        </div>
-
-        {/* Progress pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ProgressPill emoji="🏆" label="Badges" value={badgesCount} total={BADGES.length} color="#fcd34d" />
-          <ProgressPill emoji="🎓" label="Lessons" value={lessonsCount} total={LESSONS.length} color="#fde68a" />
-          <ProgressPill emoji="🥣" label="In Bowl" value={totalMass} unit="g" color="#7FBED6" />
-          {baking.status === "baking" && (
-            <ProgressPill emoji="🔥" label="Baking" value={Math.round(baking.brownLevel * 100)} unit="%" color="#b8602b" />
-          )}
-          {servedToCustomer && (
-            <ProgressPill emoji="😊" label="Served!" value={1} color="#bbf7d0" />
-          )}
-        </div>
-      </div>
-
-      {/* Middle: the kitchen bench scene */}
-      <div
-        className="relative flex-1 min-h-[400px] rounded-2xl overflow-hidden border-2 border-border"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 70% at 50% 20%, #fff8e8 0%, #f0dca8 35%, #b88848 75%, #5a3818 100%)",
-          boxShadow: "inset 0 0 80px rgba(80, 50, 20, 0.3)",
-        }}
-      >
-        {/* Back wall — subway tile pattern */}
+        {/* Decorative pattern */}
         <div
-          className="absolute inset-x-0 top-0 h-[42%]"
+          className="absolute inset-0 opacity-20"
           style={{
-            background:
-              "linear-gradient(180deg, #f5ead8 0%, #e8d5b8 100%)",
             backgroundImage:
-              "repeating-linear-gradient(0deg, transparent 0px, transparent 28px, rgba(120, 80, 40, 0.15) 28px, rgba(120, 80, 40, 0.15) 30px), repeating-linear-gradient(90deg, transparent 0px, transparent 56px, rgba(120, 80, 40, 0.15) 56px, rgba(120, 40, 0.15) 58px)",
-            boxShadow: "inset 0 -8px 16px rgba(80, 50, 20, 0.2)",
+              "radial-gradient(circle at 80% 20%, rgba(252, 211, 77, 0.4), transparent 50%), radial-gradient(circle at 20% 80%, rgba(212, 144, 79, 0.3), transparent 50%)",
           }}
         />
 
-        {/* Window with sky view (decorative) */}
-        <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 w-[24%] h-[28%] rounded-md overflow-hidden border-4"
-          style={{
-            borderColor: "#5a3818",
-            background:
-              "linear-gradient(180deg, #b8e0f5 0%, #d8eef8 50%, #f0d8a8 100%)",
-            boxShadow: "inset 0 0 12px rgba(0,0,0,0.3)",
-          }}
-        >
-          {/* Sun */}
-          <div
-            className="absolute top-1 right-2 w-4 h-4 rounded-full"
-            style={{
-              background: "radial-gradient(circle, #ffeb3b 0%, #ff9800 100%)",
-              boxShadow: "0 0 8px #ffeb3b",
-            }}
-          />
-          {/* Clouds */}
-          <motion.div
-            className="absolute top-3 left-2 w-3 h-1.5 rounded-full bg-white/80"
-            animate={{ x: [0, 30, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.div
-            className="absolute top-6 left-4 w-2 h-1 rounded-full bg-white/60"
-            animate={{ x: [0, 25, 0] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear", delay: 2 }}
-          />
-        </div>
-
-        {/* Counter top — the bench surface */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-[58%]"
-          style={{
-            background:
-              "linear-gradient(180deg, #8a5028 0%, #6a3818 30%, #4a2810 70%, #2a1808 100%)",
-            backgroundImage:
-              "repeating-linear-gradient(92deg, rgba(60, 35, 15, 0.15) 0px, rgba(60, 35, 15, 0.15) 2px, transparent 2px, transparent 7px), linear-gradient(180deg, #8a5028 0%, #6a3818 30%, #4a2810 70%, #2a1808 100%)",
-            boxShadow: "inset 0 6px 16px rgba(0,0,0,0.5)",
-          }}
-        >
-          {/* Counter top edge highlight */}
-          <div
-            className="absolute top-0 inset-x-0 h-1.5"
-            style={{
-              background: "linear-gradient(180deg, rgba(255, 220, 170, 0.6) 0%, transparent 100%)",
-            }}
-          />
-        </div>
-
-        {/* Sunbeam */}
-        <div className="absolute inset-0 sunbeam pointer-events-none" />
-        {/* Film grain */}
-        <div className="absolute inset-0 film-grain pointer-events-none" />
-
-        {/* Appliance hotspots — clickable stations positioned on the bench */}
-        {BENCH_STATIONS.map((station, idx) => {
-          const Icon = station.icon
-          // Special state hints
-          let stateBadge: string | null = null
-          if (station.id === "oven" && ovenOn && baking.status === "baking") {
-            stateBadge = "🔥 Baking"
-          } else if (station.id === "showcase" && servedToCustomer) {
-            stateBadge = "✓ Served"
-          } else if (station.id === "mixing" && totalMass > 0) {
-            stateBadge = `${totalMass}g`
-          } else if (station.id === "toppings" && appliedToppings.length > 0) {
-            stateBadge = `${appliedToppings.length}`
-          } else if (station.id === "school" && lessonsCount > 0) {
-            stateBadge = `${lessonsCount}/${LESSONS.length}`
-          }
-
-          return (
-            <motion.button
-              key={station.id}
-              onClick={() => handleStationClick(station)}
-              whileHover={{ y: -4, scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.04 * idx, duration: 0.4 }}
-              className="absolute group"
+        <div className="relative flex flex-wrap items-center gap-4">
+          {/* Logo + title */}
+          <div className="flex items-center gap-3 flex-1 min-w-[260px]">
+            <motion.div
+              animate={{ rotate: [0, -5, 5, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{
-                left: station.position.left,
-                top: station.position.top,
-                width: station.position.width,
-                height: station.position.height,
+                background: "linear-gradient(135deg, #fcd34d, #b8602b)",
+                boxShadow: "0 8px 20px rgba(184, 96, 43, 0.5)",
               }}
-              aria-label={station.label}
             >
-              {/* The appliance visual */}
-              <div
-                className="relative w-full h-full rounded-xl overflow-hidden flex flex-col items-center justify-center p-2 sm:p-3 transition-all"
-                style={{
-                  background:
-                    `linear-gradient(180deg, ${station.accent}33 0%, ${station.accent}66 100%)`,
-                  border: `2px solid ${station.accent}`,
-                  boxShadow: `0 8px 20px -4px ${station.accent}99, inset 0 1px 2px rgba(255,255,255,0.5)`,
-                }}
-              >
-                {/* Appliance icon/emoji — large */}
-                <motion.div
-                  className="text-3xl sm:text-4xl md:text-5xl mb-1"
-                  animate={
-                    station.id === "oven" && ovenOn
-                      ? { scale: [1, 1.05, 1] }
-                      : station.id === "mixing" && totalMass > 0
-                      ? { rotate: [0, -5, 5, 0] }
-                      : {}
-                  }
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  {station.emoji}
-                </motion.div>
-                {/* Label */}
-                <div className="text-[10px] sm:text-xs font-bold text-foreground leading-tight text-center">
-                  {station.label}
-                </div>
-                {/* Tiny description */}
-                <div className="hidden sm:block text-[9px] text-foreground/60 leading-tight text-center mt-0.5">
-                  {station.description}
-                </div>
-
-                {/* State badge */}
-                {stateBadge && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-card shadow-md border border-border"
-                    style={{ color: station.accent }}
-                  >
-                    {stateBadge}
-                  </motion.div>
-                )}
-
-                {/* Hover glow */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  style={{
-                    background: `radial-gradient(circle at 50% 50%, ${station.accent}55, transparent 70%)`,
-                  }}
-                />
-              </div>
-            </motion.button>
-          )
-        })}
-
-        {/* Chef Bear mascot in corner */}
-        <motion.div
-          className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-10"
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ChefBearMascot size={64} onClick={() => showMascot("Hi! I'm Chef Bear. Want me to teach you how to bake? Head to the Bake School!")} />
-        </motion.div>
-
-        {/* Floating "Tip" badge */}
-        <motion.div
-          className="absolute top-3 left-3 max-w-[180px] rounded-lg bg-card/95 backdrop-blur-sm border-2 border-primary/40 p-2 shadow-lg pointer-events-none"
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
-          <div className="text-[9px] font-bold text-primary uppercase tracking-wide flex items-center gap-1">
-            <SparklesIcon className="w-2.5 h-2.5" /> Did you know?
+              <ChefHat className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+            </motion.div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold leading-tight text-white tracking-tight">
+                HIRA <span className="text-amber-300">Bakery</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-amber-100/70 leading-tight mt-0.5">
+                {completedLessons.length === 0
+                  ? "Welcome! Start with a lesson or explore the kitchen."
+                  : `Welcome back! ${completedLessons.length} of ${LESSONS.length} lessons complete.`}
+              </p>
+            </div>
           </div>
-          <p className="text-[10px] text-foreground/80 leading-tight mt-0.5">{funFact}</p>
-        </motion.div>
+
+          {/* Stats — clean pill row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <StatPill icon="🎓" label="Lessons" value={`${lessonsCount}/${LESSONS.length}`} />
+            <StatPill icon="🏆" label="Badges" value={`${badgesCount}/${BADGES.length}`} />
+            {totalMass > 0 && <StatPill icon="🥣" label="Bowl" value={`${totalMass}g`} />}
+            {baking.status === "baking" && (
+              <StatPill icon="🔥" label="Baking" value={`${Math.round(baking.brownLevel * 100)}%`} />
+            )}
+            {servedToCustomer && <StatPill icon="✨" label="Served" value="✓" />}
+          </div>
+        </div>
+
+        {/* CTA buttons row */}
+        <div className="relative flex flex-wrap gap-2 mt-4">
+          <button
+            onClick={handleStartFirstLesson}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-stone-900 active:scale-95 transition shadow-lg"
+            style={{
+              background: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)",
+              boxShadow: "0 4px 12px rgba(252, 211, 77, 0.4)",
+            }}
+          >
+            <GraduationCap className="w-4 h-4" />
+            {lessonsCount === 0 ? "Start First Lesson" : "Continue Learning"}
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setActiveStation("pantry")}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/15 active:scale-95 transition"
+          >
+            <ShoppingBasket className="w-4 h-4" />
+            Free Play
+          </button>
+          <button
+            onClick={() => showMascot(`🌟 Fun fact: ${funFact}`)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/15 active:scale-95 transition"
+          >
+            <SparklesIcon className="w-4 h-4" />
+            Fun Fact
+          </button>
+        </div>
       </div>
 
-      {/* Bottom: Quick actions + Start lesson CTA */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={handleStartFirstLesson}
-          className="flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm sm:text-base font-bold text-white shadow-lg active:scale-95 transition"
-          style={{
-            background: "linear-gradient(135deg, #b8602b 0%, #d4904f 50%, #fcd34d 100%)",
-            boxShadow: "0 6px 16px -4px rgba(184, 96, 43, 0.5)",
-          }}
+      {/* Stations organized by category — clean grid */}
+      <div className="flex-1 space-y-3 min-h-0">
+        {(Object.keys(stationsByCategory) as BenchStation["category"][]).map((cat) => {
+          const stations = stationsByCategory[cat]
+          if (stations.length === 0) return null
+          const meta = CATEGORY_LABELS[cat]
+          return (
+            <div key={cat} className="space-y-2">
+              {/* Category label */}
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-base">{meta.emoji}</span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {meta.label}
+                </h3>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Station cards — responsive grid */}
+              <div
+                className={`grid gap-2.5 ${
+                  cat === "learn"
+                    ? "grid-cols-1"
+                    : cat === "prep"
+                    ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3"
+                    : cat === "bake"
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-4"
+                }`}
+              >
+                {stations.map((station, idx) => (
+                  <StationCard
+                    key={station.id}
+                    station={station}
+                    onClick={() => handleStationClick(station)}
+                    index={idx}
+                    stateBadge={getStateBadge(station.id, {
+                      bowl,
+                      baking,
+                      appliedToppings,
+                      ovenOn,
+                      servedToCustomer,
+                      completedLessons: lessonsCount,
+                    })}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Fun fact strip at the bottom */}
+      <div
+        className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-3 flex items-center gap-3 shrink-0"
+      >
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="text-2xl shrink-0"
         >
-          <GraduationCap className="w-5 h-5" />
-          {lessonsCount === 0 ? "Start Your First Lesson!" : `Continue Learning (${lessonsCount}/${LESSONS.length})`}
-        </button>
-        <button
-          onClick={() => setActiveStation("pantry")}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-card border-2 border-border hover:border-primary/50 shadow-sm active:scale-95 transition"
-        >
-          <ShoppingBasket className="w-5 h-5 text-primary" />
-          Free Play
-        </button>
-        <button
-          onClick={() => {
-            showMascot(`🌟 Fun fact: ${randomFunFact()}`)
-            pushLog("Chef Bear shared a fun fact", "info")
-          }}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-card border-2 border-border hover:border-primary/50 shadow-sm active:scale-95 transition"
-        >
-          <SparklesIcon className="w-5 h-5 text-primary" />
-          Fun Fact
-        </button>
+          💡
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+            Did you know?
+          </div>
+          <motion.p
+            key={funFact}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-amber-900 leading-snug mt-0.5"
+          >
+            {funFact}
+          </motion.p>
+        </div>
       </div>
     </div>
   )
 }
 
-function ProgressPill({
-  emoji,
-  label,
-  value,
-  total,
-  unit,
-  color,
+// ─── Station card ────────────────────────────────────────────────────────
+
+function StationCard({
+  station,
+  onClick,
+  index,
+  stateBadge,
 }: {
-  emoji: string
-  label: string
-  value: number
-  total?: number
-  unit?: string
-  color: string
+  station: BenchStation
+  onClick: () => void
+  index: number
+  stateBadge: string | null
 }) {
+  const Icon = station.icon
   return (
-    <div
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-card/90 backdrop-blur-sm border-2 text-xs font-bold shadow-sm"
-      style={{ borderColor: color, color }}
+    <motion.button
+      onClick={onClick}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.97 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      className={`group relative overflow-hidden rounded-2xl border-2 bg-gradient-to-br ${station.gradient} p-3 sm:p-4 text-left transition-all hover:shadow-xl`}
+      style={{
+        borderColor: `${station.accent}33`,
+      }}
+      aria-label={station.label}
     >
-      <span className="text-sm">{emoji}</span>
-      <span className="text-foreground/70">{label}:</span>
-      <span>
-        {value}{unit ?? ""}
-        {total !== undefined && <span className="opacity-60">/{total}</span>}
+      {/* Accent corner glow */}
+      <div
+        className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-30 blur-2xl pointer-events-none transition-opacity group-hover:opacity-50"
+        style={{ background: station.accent }}
+      />
+
+      {/* Top row: emoji + state badge */}
+      <div className="relative flex items-start justify-between mb-2">
+        <motion.div
+          className="text-3xl sm:text-4xl"
+          whileHover={{ scale: 1.15, rotate: 5 }}
+        >
+          {station.emoji}
+        </motion.div>
+        {stateBadge && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white shadow-sm"
+            style={{ background: station.accent }}
+          >
+            {stateBadge}
+          </motion.span>
+        )}
+      </div>
+
+      {/* Label + description */}
+      <div className="relative">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Icon className="w-3.5 h-3.5" style={{ color: station.accent }} />
+          <h4 className="text-sm font-bold leading-tight" style={{ color: station.accent }}>
+            {station.label}
+          </h4>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+          {station.description}
+        </p>
+      </div>
+
+      {/* Hover hint arrow */}
+      <div
+        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ color: station.accent }}
+      >
+        <ArrowRight className="w-3.5 h-3.5" />
+      </div>
+    </motion.button>
+  )
+}
+
+// ─── State badge helper ──────────────────────────────────────────────────
+
+function getStateBadge(
+  stationId: BenchStation["id"],
+  state: {
+    bowl: { ingredientId: string; grams: number }[]
+    baking: { status: string; brownLevel: number }
+    appliedToppings: { id: string }[]
+    ovenOn: boolean
+    servedToCustomer: boolean
+    completedLessons: number
+  }
+): string | null {
+  switch (stationId) {
+    case "school":
+      return state.completedLessons > 0 ? `${state.completedLessons}/10` : null
+    case "pantry":
+      return state.bowl.length > 0 ? `${state.bowl.length} items` : null
+    case "mixing":
+    case "mixer": {
+      const mass = state.bowl.reduce((a, b) => a + b.grams, 0)
+      return mass > 0 ? `${mass}g` : null
+    }
+    case "oven":
+      if (state.ovenOn && state.baking.status === "baking") return "🔥 Live"
+      if (state.baking.brownLevel > 0.05) return `${Math.round(state.baking.brownLevel * 100)}%`
+      return null
+    case "toppings":
+      return state.appliedToppings.length > 0 ? `${state.appliedToppings.length}` : null
+    case "showcase":
+      return state.servedToCustomer ? "✓ Served" : null
+    default:
+      return null
+  }
+}
+
+// ─── Stat pill ───────────────────────────────────────────────────────────
+
+function StatPill({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/15">
+      <span className="text-sm">{icon}</span>
+      <span className="text-[10px] text-amber-100/70 uppercase tracking-wider font-semibold">
+        {label}
       </span>
+      <span className="text-xs font-bold text-white">{value}</span>
     </div>
   )
 }

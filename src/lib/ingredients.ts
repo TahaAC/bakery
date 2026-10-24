@@ -1,4 +1,4 @@
-// Master Baker VR — Ingredient Library
+// HIRA Bakery — Ingredient Library
 // Each ingredient has visual, physical, and chemical properties used by the simulation.
 
 export type IngredientCategory = "dry" | "wet" | "fat" | "leavening" | "flavor" | "dairy" | "egg"
