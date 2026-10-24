@@ -26,6 +26,7 @@ import {
   type AppliedTopping,
 } from "@/lib/kitchen-store"
 import { TOPPINGS } from "@/lib/toppings"
+import { formatTimeHM } from "@/hooks/use-mounted"
 
 const SLICE_OPTIONS = [0, 4, 6, 8, 10, 12]
 
@@ -145,10 +146,8 @@ export function ShowcaseStation() {
     )
   }
 
-  // Served time formatted nicely
-  const servedTimeText = servedAt
-    ? new Date(servedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
-    : null
+  // Served time formatted nicely (only set after user action, so no hydration risk)
+  const servedTimeText = servedAt ? formatTimeHM(servedAt) : null
 
   return (
     <div className="grid lg:grid-cols-[1fr_340px] gap-4 h-full relative">

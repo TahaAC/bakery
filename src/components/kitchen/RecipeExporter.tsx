@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useKitchen, bowlLayers, totalBowlMass, toppingsSummary } from "@/lib/kitchen-store"
 import { CATEGORY_META } from "@/lib/ingredients"
+import { useMounted, formatDateShort } from "@/hooks/use-mounted"
 
 export function RecipeExporter() {
   const bowl = useKitchen((s) => s.bowl)
@@ -27,6 +28,12 @@ export function RecipeExporter() {
   const totalMass = totalBowlMass(bowl)
   const toppingList = toppingsSummary(appliedToppings, toppingBrushSize)
   const toppingTotalGrams = toppingList.reduce((a, t) => a + t.grams, 0)
+
+  // Hydration-safe date: defer rendering until after mount so server and
+  // client agree on the value (avoids "Generated Oct 24" vs "Oct 25" near
+  // midnight, and locale-format mismatches).
+  const mounted = useMounted()
+  const generatedDateLabel = mounted ? formatDateShort(Date.now()) : ""
 
   // Hydration analysis
   const analysis = useMemo(() => {
@@ -117,7 +124,7 @@ export function RecipeExporter() {
                 placeholder="Untitled Bake"
               />
               <div className="text-xs text-muted-foreground mt-1">
-                Generated {new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                {mounted ? `Generated ${generatedDateLabel}` : "\u00A0"}
               </div>
             </div>
             <div className="w-16 h-16 rounded-full metal-copper flex items-center justify-center text-3xl shrink-0">
@@ -367,7 +374,7 @@ function formatRecipeText(
   lines.push(`═══════════════════════════════════════`)
   lines.push(``)
   lines.push(`Name: ${name}`)
-  lines.push(`Generated: ${new Date().toLocaleString()}`)
+  lines.push(`Generated: ${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`)
   lines.push(``)
   lines.push(`─── INGREDIENTS ───`)
   layers.forEach((l) => {

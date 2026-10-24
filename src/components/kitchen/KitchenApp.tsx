@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useKitchen, type StationId } from "@/lib/kitchen-store"
+import { useMounted, formatTimeHMS } from "@/hooks/use-mounted"
 import { PantryStation } from "./PantryStation"
 import { MixingStation } from "./MixingStation"
 import { StandMixerStation } from "./StandMixerStation"
@@ -80,6 +81,9 @@ export function KitchenApp() {
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [scienceOpen, setScienceOpen] = useState(false)
   const logEndRef = useRef<HTMLDivElement>(null)
+  // Defers rendering of locale-sensitive time strings until after hydration
+  // so SSR HTML matches the first client render.
+  const mounted = useMounted()
 
   // Sync overlay open states with toggles
   useEffect(() => {
@@ -291,7 +295,7 @@ export function KitchenApp() {
                   className={`leading-snug ${LOG_COLORS[entry.kind] ?? "text-foreground"}`}
                 >
                   <span className="font-mono text-[10px] text-muted-foreground/70 mr-1.5">
-                    {new Date(entry.time).toLocaleTimeString(undefined, { hour12: false })}
+                    {mounted ? formatTimeHMS(entry.time) : "--:--:--"}
                   </span>
                   {entry.text}
                 </motion.div>
@@ -324,7 +328,7 @@ export function KitchenApp() {
               {log.slice().reverse().map((entry) => (
                 <div key={entry.id} className={`leading-snug ${LOG_COLORS[entry.kind] ?? "text-foreground"}`}>
                   <span className="font-mono text-[10px] text-muted-foreground/70 mr-1.5">
-                    {new Date(entry.time).toLocaleTimeString(undefined, { hour12: false })}
+                    {mounted ? formatTimeHMS(entry.time) : "--:--:--"}
                   </span>
                   {entry.text}
                 </div>
