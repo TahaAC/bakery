@@ -19,7 +19,9 @@ export const metadata: Metadata = {
   keywords: ["HIRA Bakery", "baking", "kitchen", "kids learning", "cooking school", "simulation", "virtual bakery", "recipe", "chemistry", "Next.js"],
   authors: [{ name: "HIRA Bakery" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
+    apple: "/logo.svg",
+    shortcut: "/logo.svg",
   },
   appleWebApp: {
     capable: true,

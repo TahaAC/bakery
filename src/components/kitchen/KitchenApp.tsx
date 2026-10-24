@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  ChefHat,
   ShoppingBasket,
   Blend as MixingIcon,
   Microwave,
@@ -39,6 +38,7 @@ import { ScienceOverlay } from "./ScienceOverlay"
 import { KitchenBench } from "./KitchenBench"
 import { BakeSchoolStation } from "./BakeSchoolStation"
 import { MascotBubble, CelebrationOverlay } from "./MascotOverlay"
+import { HiraLogo } from "./HiraLogo"
 import { BowlContentsList } from "./BowlView"
 
 const STATIONS: {
@@ -134,9 +134,7 @@ export function KitchenApp() {
         <div className="px-3 sm:px-4 py-2 flex items-center gap-2 sm:gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-9 h-9 rounded-lg metal-copper flex items-center justify-center shadow-md">
-              <ChefHat className="w-5 h-5 text-white" />
-            </div>
+            <HiraLogo size={36} animated />
             <div className="hidden sm:block">
               <div className="text-sm font-bold leading-tight tracking-tight">
                 HIRA <span className="text-primary">Bakery</span>

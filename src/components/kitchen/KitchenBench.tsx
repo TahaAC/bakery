@@ -10,13 +10,13 @@ import {
   Eye,
   Droplets,
   FileText,
-  ChefHat,
   GraduationCap,
   Award,
   ArrowRight,
 } from "lucide-react"
 import { useKitchen } from "@/lib/kitchen-store"
 import { BADGES, LESSONS, randomFunFact } from "@/lib/lessons"
+import { HiraLogo } from "./HiraLogo"
 import { useEffect, useState } from "react"
 
 interface BenchStation {
@@ -207,13 +207,13 @@ export function KitchenBench() {
             <motion.div
               animate={{ rotate: [0, -5, 5, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0"
+              className="shrink-0 rounded-2xl overflow-hidden"
               style={{
                 background: "linear-gradient(135deg, #fcd34d, #b8602b)",
                 boxShadow: "0 8px 20px rgba(184, 96, 43, 0.5)",
               }}
             >
-              <ChefHat className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <HiraLogo size={56} />
             </motion.div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold leading-tight text-white tracking-tight">
