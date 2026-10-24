@@ -27,6 +27,7 @@ import {
 } from "@/lib/kitchen-store"
 import { TOPPINGS } from "@/lib/toppings"
 import { formatTimeHM } from "@/hooks/use-mounted"
+import { CakeView } from "./CakeView"
 
 const SLICE_OPTIONS = [0, 4, 6, 8, 10, 12]
 
@@ -308,16 +309,15 @@ export function ShowcaseStation() {
           {/* Subtle film grain */}
           <div className="absolute inset-0 film-grain" />
 
-          {/* The Cake itself */}
-          <CakeDisplay
-            cakeHex={brownedHex}
-            riseLevel={baking.riseLevel}
-            brownLevel={baking.brownLevel}
-            appliedToppings={appliedToppings}
-            sliceCount={sliceCount}
-            isServed={servedToCustomer}
-            onLike={handleLike}
-          />
+          {/* The Cake itself — realistic HD cake render */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <CakeView
+              size={Math.min(420, 360)}
+              showPlate
+              sliceCount={sliceCount}
+              steam={baking.status === "done" && baking.brownLevel > 0.3}
+            />
+          </div>
 
           {/* Customer "Like" button floating on cake (only when served) */}
           {servedToCustomer && (
@@ -635,265 +635,6 @@ export function ShowcaseStation() {
   )
 }
 
-// ─── Cake Display component (reused visual) ──────────────────────────────
-
-function CakeDisplay({
-  cakeHex,
-  riseLevel,
-  brownLevel,
-  appliedToppings,
-  sliceCount,
-  isServed,
-  onLike,
-}: {
-  cakeHex: string
-  riseLevel: number
-  brownLevel: number
-  appliedToppings: AppliedTopping[]
-  sliceCount: number
-  isServed: boolean
-  onLike: () => void
-}) {
-  // Determine the size of the cake based on rise
-  const cakeSize = 50 + riseLevel * 8
-
-  return (
-    <div className="absolute left-1/2 top-[35%] -translate-x-1/2 -translate-y-1/2 w-[60%] h-[55%]">
-      {/* Soft shadow under cake */}
-      <div
-        className="absolute left-1/2 bottom-0 -translate-x-1/2 w-[80%] h-3 rounded-full"
-        style={{
-          background: "rgba(0,0,0,0.25)",
-          filter: "blur(8px)",
-        }}
-      />
-
-      {/* Cake body — uses conic gradient for slice lines when sliced */}
-      <motion.div
-        className="absolute inset-0 flex items-center justify-center"
-        animate={isServed ? { scale: [1, 1.02, 1] } : {}}
-        transition={{ duration: 0.4 }}
-      >
-        <div
-          className="relative rounded-full"
-          style={{
-            width: `${cakeSize}%`,
-            height: `${cakeSize}%`,
-            background:
-              sliceCount > 0
-                ? `conic-gradient(${Array.from({ length: sliceCount })
-                    .map((_, i) => {
-                      const start = (i / sliceCount) * 360
-                      const end = ((i + 1) / sliceCount) * 360
-                      const shade = i % 2 === 0 ? brighten(cakeHex, 0.06) : cakeHex
-                      return `${shade} ${start}deg ${end}deg`
-                    })
-                    .join(", ")})`
-                : `radial-gradient(ellipse at 35% 30%, ${brighten(cakeHex, 0.18)}, ${cakeHex} 60%, ${darken(cakeHex, 0.18)} 100%)`,
-            boxShadow:
-              "inset 0 -8px 18px rgba(80,40,15,0.35), inset 0 4px 10px rgba(255,255,255,0.4), 0 12px 24px rgba(80,50,20,0.3)",
-          }}
-        >
-          {/* Surface texture */}
-          <div
-            className="absolute inset-0 rounded-full opacity-40"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 25% 30%, rgba(0,0,0,0.2) 0.4px, transparent 1.5px), radial-gradient(circle at 65% 60%, rgba(0,0,0,0.18) 0.4px, transparent 1.4px), radial-gradient(circle at 45% 75%, rgba(255,255,255,0.25) 0.3px, transparent 1.2px)",
-              backgroundSize: "16px 16px, 18px 18px, 14px 14px",
-            }}
-          />
-
-          {/* Crust crackle at high browning */}
-          {brownLevel > 0.5 && (
-            <div
-              className="absolute inset-0 rounded-full opacity-50"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0.4px, transparent 1.5px), radial-gradient(circle at 70% 30%, rgba(0,0,0,0.35) 0.3px, transparent 1.2px)",
-                backgroundSize: "22px 22px, 24px 24px",
-              }}
-            />
-          )}
-
-          {/* Slice lines (when sliced) */}
-          {sliceCount > 0 && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {Array.from({ length: sliceCount }).map((_, i) => {
-                const angle = (i / sliceCount) * 360
-                return (
-                  <line
-                    key={i}
-                    x1="50%"
-                    y1="50%"
-                    x2="50%"
-                    y2="0%"
-                    stroke="rgba(80,40,15,0.45)"
-                    strokeWidth="1.5"
-                    transform={`rotate(${angle} 50% 50%)`}
-                  />
-                )
-              })}
-            </svg>
-          )}
-
-          {/* Toppings rendered on the cake */}
-          <div className="absolute inset-0 pointer-events-none">
-            {appliedToppings.map((applied) => (
-              <ShowcaseTopping
-                key={applied.id}
-                applied={applied}
-                topping={TOPPINGS.find((t) => t.id === applied.toppingId)!}
-                cakeSize={cakeSize}
-              />
-            ))}
-          </div>
-
-          {/* Glaze/highlight on top */}
-          <div
-            className="absolute inset-[10%] rounded-full opacity-30"
-            style={{
-              background:
-                "radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.6), transparent 60%)",
-            }}
-          />
-
-          {/* Served ribbon overlay */}
-          {isServed && (
-            <motion.div
-              initial={{ scale: 0, rotate: -15 }}
-              animate={{ scale: 1, rotate: -12 }}
-              transition={{ delay: 0.4, type: "spring" }}
-              className="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold shadow-lg"
-            >
-              FRESH!
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-// ─── Simplified topping renderer for the showcase (scaled to cake) ──────
-
-function ShowcaseTopping({
-  applied,
-  topping,
-  cakeSize,
-}: {
-  applied: AppliedTopping
-  topping: (typeof TOPPINGS)[number] | undefined
-  cakeSize: number
-}) {
-  if (!topping) return null
-  const size = 10 + applied.amount * 18
-
-  // Drizzle / pipe — render as stroked path
-  if ((topping.method === "drizzle" || topping.method === "pipe") && applied.path && applied.path.length > 1) {
-    return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        <polyline
-          points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
-          fill="none"
-          stroke={topping.color}
-          strokeWidth={topping.method === "pipe" ? 6 + applied.amount * 8 : 2.5 + applied.amount * 3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.95}
-        />
-        <polyline
-          points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
-          fill="none"
-          stroke={topping.highlight ?? "#ffffff"}
-          strokeWidth={topping.method === "pipe" ? 1.5 : 1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.5}
-        />
-      </svg>
-    )
-  }
-
-  // Dust / scatter / place / layer — positioned element
-  return (
-    <div
-      className="absolute"
-      style={{
-        left: `${applied.x}%`,
-        top: `${applied.y}%`,
-        width: `${size}px`,
-        height: `${size}px`,
-        transform: `translate(-50%, -50%) rotate(${applied.rotation}deg)`,
-        pointerEvents: "none",
-      }}
-    >
-      {topping.method === "dust" ? (
-        <>
-          {(applied.particles ?? []).map((p, i) => (
-            <span
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                left: `calc(50% + ${p.x}px)`,
-                top: `calc(50% + ${p.y}px)`,
-                width: `${p.size}px`,
-                height: `${p.size}px`,
-                background: p.useHighlight ? topping.highlight ?? topping.color : topping.color,
-                opacity: p.opacity,
-              }}
-            />
-          ))}
-        </>
-      ) : topping.method === "scatter" ? (
-        <>
-          {(applied.particles ?? []).map((p, i) => {
-            const isSprinkle = topping.id.includes("sprinkles")
-            return (
-              <span
-                key={i}
-                className="absolute"
-                style={{
-                  left: `calc(50% + ${p.x}px)`,
-                  top: `calc(50% + ${p.y}px)`,
-                  width: isSprinkle ? `${p.size * 2.5}px` : `${p.size}px`,
-                  height: isSprinkle ? `${p.size * 0.8}px` : `${p.size}px`,
-                  background: isSprinkle
-                    ? CONFETTI_COLORS[i % CONFETTI_COLORS.length]
-                    : p.useHighlight
-                    ? topping.highlight ?? topping.color
-                    : topping.color,
-                  borderRadius: isSprinkle ? "2px" : "40% 60% 50% 50%",
-                  transform: isSprinkle ? `rotate(${p.rotation}deg)` : undefined,
-                }}
-              />
-            )
-          })}
-        </>
-      ) : topping.method === "layer" ? (
-        <div
-          className="w-full h-full rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${topping.color}f0 0%, ${topping.color}33 80%, transparent 100%)`,
-            width: `${size * 3}px`,
-            height: `${size * 3}px`,
-            mixBlendMode: "multiply",
-          }}
-        />
-      ) : topping.method === "place" ? (
-        <div
-          className="w-full h-full rounded-full flex items-center justify-center"
-          style={{
-            background: `radial-gradient(circle at 30% 30%, ${topping.highlight ?? topping.color}, ${topping.color})`,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4)",
-          }}
-        >
-          <span className="text-[10px]">{topping.emoji}</span>
-        </div>
-      ) : null}
-    </div>
-  )
-}
 
 // ─── Allergen description ────────────────────────────────────────────────
 
