@@ -2,14 +2,33 @@
 
 import { create } from "zustand"
 import { getIngredient, type Ingredient } from "./ingredients"
+import { TOPPINGS } from "./toppings"
+
+// Build a fast lookup table of topping ID → topping material
+const TOPPINGS_LOOKUP = Object.fromEntries(TOPPINGS.map((t) => [t.id, t]))
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type StationId = "pantry" | "mixing" | "mixer" | "oven" | "sink" | "recipe"
+export type StationId = "pantry" | "mixing" | "mixer" | "oven" | "toppings" | "showcase" | "sink" | "recipe"
 
 export interface BowlIngredient {
   ingredientId: string
   grams: number
+}
+
+/** A single applied topping instance on the pastry canvas */
+export interface AppliedTopping {
+  id: string
+  toppingId: string
+  /** Position on canvas in % (0-100), relative to canvas */
+  x: number
+  y: number
+  /** Size/quantity factor 0..1 (controls visual size + gram weight) */
+  amount: number
+  /** Optional rotation in degrees for visual variety */
+  rotation: number
+  /** Stroke path for drizzle/pipe methods (array of {x,y} in canvas %) */
+  path?: { x: number; y: number }[]
 }
 
 export type OvenMode = "bake" | "fan" | "broil" | "proof"
@@ -91,6 +110,34 @@ interface KitchenState {
   scrub: (delta: number) => void
   resetUtensils: () => void
 
+  // ─── Toppings station ───
+  appliedToppings: AppliedTopping[]
+  /** Currently selected topping for application */
+  selectedToppingId: string | null
+  /** Brush size 0.3..1.5 — affects per-stroke amount */
+  toppingBrushSize: number
+  setSelectedTopping: (id: string | null) => void
+  setToppingBrushSize: (s: number) => void
+  applyTopping: (t: Omit<AppliedTopping, "id">) => void
+  removeTopping: (id: string) => void
+  clearToppings: () => void
+
+  // ─── Showcase / customer display ───
+  /** Slice count (0 = whole cake, 6/8/12 = sliced) */
+  sliceCount: number
+  /** True once the cake has been served to a customer */
+  servedToCustomer: boolean
+  /** ISO timestamp when the cake was served */
+  servedAt: number | null
+  /** Customer star rating (0 = not yet rated, 1..5 stars) */
+  customerRating: number
+  /** Customer review text (randomly generated when served) */
+  customerReview: string
+  setSliceCount: (n: number) => void
+  serveToCustomer: () => void
+  rateByCustomer: (stars: number) => void
+  resetShowcase: () => void
+
   // ─── Toggles ───
   scienceOverlay: boolean
   voiceAssistant: boolean
@@ -130,6 +177,74 @@ function describeDoneness(brown: number, rise: number): string {
   return "Burnt"
 }
 
+/**
+ * Generate a customer review based on the quality of the finished bake.
+ * Factors in: browning level, rise, topping count.
+ */
+function generateCustomerReview(
+  baking: BakingState,
+  toppings: AppliedTopping[]
+): { rating: number; text: string } {
+  const brown = baking.brownLevel
+  const rise = baking.riseLevel
+  const toppingCount = toppings.length
+
+  // Base score from bake quality
+  let score = 0
+  if (brown >= 0.5 && brown <= 0.75) score += 2 // golden = ideal
+  else if (brown > 0.75 && brown <= 0.85) score += 1.5 // well-browned
+  else if (brown < 0.3) score += 0.5 // pale / underbaked
+  else if (brown > 0.85) score += 0.3 // approaching burnt
+
+  if (rise >= 0.4 && rise <= 0.85) score += 1.5 // good rise
+  else if (rise > 0.85) score += 1 // over-risen
+  else if (rise < 0.2) score += 0.2 // flat
+
+  // Bonus for decoration
+  if (toppingCount >= 3 && toppingCount <= 10) score += 1
+  else if (toppingCount > 0) score += 0.5
+  if (toppingCount > 15) score -= 0.5 // over-decorated
+
+  const rating = Math.max(1, Math.min(5, Math.round(score)))
+
+  const reviews: Record<number, string[]> = {
+    5: [
+      "Absolutely divine! The crumb is perfect and the presentation is stunning.",
+      "Best bake I've had all year. The flavors are beautifully balanced.",
+      "Five stars — I'll be back for another tomorrow!",
+      "Gorgeous golden crust, exquisite decoration. A true masterpiece.",
+    ],
+    4: [
+      "Really lovely bake — just a touch more decoration would make it perfect.",
+      "Great texture and flavor. Would happily order again.",
+      "Solid bake with a beautiful rise. Highly recommended.",
+      "Delightful! The toppings complement the crumb perfectly.",
+    ],
+    3: [
+      "Decent bake, though the crust could be more even.",
+      "Pleasant enough — a little under-decorated for my taste.",
+      "Decent flavor, but the texture was a bit dense.",
+      "Average. The bake is fine but lacks visual flair.",
+    ],
+    2: [
+      "The crust is a bit dark for my liking.",
+      "Sadly underbaked in the middle. The toppings saved it slightly.",
+      "Disappointing texture — could use more rise.",
+      "Below expectations. Needs work on the bake time.",
+    ],
+    1: [
+      "Unfortunately the bake is burnt. Please check your oven temperature.",
+      "Sadly inedible — the browning went too far.",
+      "Flat and overdone. Would not recommend.",
+      "The cake collapsed and the crust is too dark.",
+    ],
+  }
+
+  const pool = reviews[rating] ?? reviews[3]
+  const text = pool[Math.floor(Math.random() * pool.length)]
+  return { rating, text }
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────
 
 export const useKitchen = create<KitchenState>((set, get) => ({
@@ -141,6 +256,8 @@ export const useKitchen = create<KitchenState>((set, get) => ({
       mixing: "Moved to Mixing Station",
       mixer: "Engaged the Stand Mixer",
       oven: "Opened the Smart Oven",
+      toppings: "Opened the Toppings Station",
+      showcase: "Presented the bake at the Showcase",
       sink: "Went to the Sink",
       recipe: "Opened Recipe Exporter",
     }
@@ -328,6 +445,77 @@ export const useKitchen = create<KitchenState>((set, get) => ({
   },
   resetUtensils: () => set({ utensils: makeUtensils() }),
 
+  // ─── Toppings state ───
+  appliedToppings: [],
+  selectedToppingId: null,
+  toppingBrushSize: 0.7,
+  setSelectedTopping: (id) => {
+    set({ selectedToppingId: id })
+    if (id) {
+      const top = TOPPINGS_LOOKUP[id]
+      if (top) get().pushLog(`Selected topping: ${top.name}`, "action")
+    }
+  },
+  setToppingBrushSize: (s) => set({ toppingBrushSize: Math.min(1.5, Math.max(0.3, s)) }),
+  applyTopping: (t) => {
+    const id = uid()
+    set((s) => ({ appliedToppings: [...s.appliedToppings, { ...t, id }] }))
+    const top = TOPPINGS_LOOKUP[t.toppingId]
+    if (top) {
+      const grams = Math.round(top.defaultGrams * t.amount * get().toppingBrushSize)
+      get().pushLog(`Applied ${top.name} (${grams}g)`, "action")
+    }
+  },
+  removeTopping: (id) => {
+    set((s) => ({ appliedToppings: s.appliedToppings.filter((t) => t.id !== id) }))
+  },
+  clearToppings: () => {
+    if (get().appliedToppings.length === 0) return
+    set({ appliedToppings: [] })
+    get().pushLog("Cleared all toppings", "action")
+  },
+
+  // ─── Showcase state ───
+  sliceCount: 0,
+  servedToCustomer: false,
+  servedAt: null,
+  customerRating: 0,
+  customerReview: "",
+  setSliceCount: (n) => {
+    const valid = [0, 4, 6, 8, 10, 12].includes(n) ? n : 0
+    set({ sliceCount: valid })
+    if (valid > 0) {
+      get().pushLog(`Cut into ${valid} slices`, "action")
+    }
+  },
+  serveToCustomer: () => {
+    if (get().servedToCustomer) return
+    const now = Date.now()
+    const review = generateCustomerReview(get().baking, get().appliedToppings)
+    set({
+      servedToCustomer: true,
+      servedAt: now,
+      customerReview: review.text,
+      customerRating: review.rating,
+    })
+    get().pushLog(`Served to customer — rated ${review.rating}/5 stars`, "action")
+  },
+  rateByCustomer: (stars) => {
+    const clamped = Math.min(5, Math.max(1, Math.round(stars)))
+    set({ customerRating: clamped })
+    get().pushLog(`Customer updated rating: ${clamped}/5`, "action")
+  },
+  resetShowcase: () => {
+    set({
+      sliceCount: 0,
+      servedToCustomer: false,
+      servedAt: null,
+      customerRating: 0,
+      customerReview: "",
+    })
+    get().pushLog("Showcase reset — ready for next customer", "action")
+  },
+
   scienceOverlay: true,
   voiceAssistant: false,
   toggleScience: () => set((s) => ({ scienceOverlay: !s.scienceOverlay })),
@@ -377,4 +565,38 @@ export function bowlLayers(bowl: BowlIngredient[]): { ingredient: Ingredient; gr
     if (sa !== sb) return sa - sb
     return b.ingredient.density - a.ingredient.density
   })
+}
+
+// ─── Topping helpers ──────────────────────────────────────────────────────
+
+/**
+ * Aggregate applied toppings into a summary list with total grams.
+ * Used by the Recipe Exporter to render the toppings section.
+ */
+export function toppingsSummary(
+  applied: AppliedTopping[],
+  brushSize: number
+): { topping: (typeof TOPPINGS)[number]; grams: number; count: number }[] {
+  const byId = new Map<string, { count: number; totalAmount: number }>()
+  for (const a of applied) {
+    const cur = byId.get(a.toppingId) ?? { count: 0, totalAmount: 0 }
+    cur.count += 1
+    cur.totalAmount += a.amount * brushSize
+    byId.set(a.toppingId, cur)
+  }
+  const result: { topping: (typeof TOPPINGS)[number]; grams: number; count: number }[] = []
+  for (const [id, agg] of byId) {
+    const top = TOPPINGS_LOOKUP[id]
+    if (!top) continue
+    const grams = Math.round(top.defaultGrams * agg.totalAmount)
+    result.push({ topping: top, grams, count: agg.count })
+  }
+  return result.sort((a, b) => b.grams - a.grams)
+}
+
+export function totalToppingGrams(
+  applied: AppliedTopping[],
+  brushSize: number
+): number {
+  return toppingsSummary(applied, brushSize).reduce((a, t) => a + t.grams, 0)
 }

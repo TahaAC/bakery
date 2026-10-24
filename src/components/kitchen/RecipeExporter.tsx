@@ -6,7 +6,7 @@ import { FileText, Printer, Save, RotateCcw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { useKitchen, bowlLayers, totalBowlMass } from "@/lib/kitchen-store"
+import { useKitchen, bowlLayers, totalBowlMass, toppingsSummary } from "@/lib/kitchen-store"
 import { CATEGORY_META } from "@/lib/ingredients"
 
 export function RecipeExporter() {
@@ -19,10 +19,14 @@ export function RecipeExporter() {
   const ovenMode = useKitchen((s) => s.ovenMode)
   const ovenTimerTotal = useKitchen((s) => s.ovenTimerTotal)
   const baking = useKitchen((s) => s.baking)
+  const appliedToppings = useKitchen((s) => s.appliedToppings)
+  const toppingBrushSize = useKitchen((s) => s.toppingBrushSize)
   const pushLog = useKitchen((s) => s.pushLog)
 
   const layers = bowlLayers(bowl)
   const totalMass = totalBowlMass(bowl)
+  const toppingList = toppingsSummary(appliedToppings, toppingBrushSize)
+  const toppingTotalGrams = toppingList.reduce((a, t) => a + t.grams, 0)
 
   // Hydration analysis
   const analysis = useMemo(() => {
@@ -74,7 +78,7 @@ export function RecipeExporter() {
   }
 
   const handleSave = () => {
-    const recipeText = formatRecipeText(layers, recipeName, analysis, ovenTempC, ovenMode, ovenTimerTotal)
+    const recipeText = formatRecipeText(layers, recipeName, analysis, ovenTempC, ovenMode, ovenTimerTotal, toppingList)
     const blob = new Blob([recipeText], { type: "text/plain;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -188,9 +192,54 @@ export function RecipeExporter() {
               {bakeTimeMin > 0 && (
                 <li>Bake for {bakeTimeMin} minutes, until {baking.donenessLabel.toLowerCase()}.</li>
               )}
+              {toppingList.length > 0 && (
+                <li>
+                  Decorate: {toppingList
+                    .map((t) => `${t.grams}g ${t.topping.name.toLowerCase()}`)
+                    .join(", ")}
+                  {toppingList.some((t) => t.topping.requiresBaked === false)
+                    ? " (apply pre-bake items before baking)"
+                    : " (apply after cooling)"}.
+                </li>
+              )}
               <li>Cool on a wire rack before serving.</li>
             </ol>
           </div>
+
+          {/* Toppings list */}
+          {toppingList.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold mb-2 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-primary" /> Toppings & Decoration
+              </h3>
+              <ul className="space-y-1">
+                {toppingList.map((t) => (
+                  <li
+                    key={t.topping.id}
+                    className="flex items-center justify-between py-1 border-b border-dotted border-border/60 text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: t.topping.color }}
+                      />
+                      {t.topping.emoji} {t.topping.name}
+                      <span className="text-[10px] text-muted-foreground">
+                        ({t.count} application{t.count === 1 ? "" : "s"})
+                      </span>
+                    </span>
+                    <span className="font-mono text-xs">
+                      {t.grams}g · {(t.grams * 0.035274).toFixed(2)}oz
+                    </span>
+                  </li>
+                ))}
+                <li className="flex justify-between pt-1 text-xs font-mono text-muted-foreground">
+                  <span>Topping total</span>
+                  <span>{toppingTotalGrams}g</span>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {/* Pro tips */}
           <div className="rounded-md bg-accent/10 border border-accent/30 p-3">
@@ -307,7 +356,8 @@ function formatRecipeText(
   analysis: { dryMass: number; wetMass: number; hydration: number; fatMass: number; sugarMass: number; leaveningMass: number; verdict: string },
   ovenTempC: number,
   ovenMode: string,
-  ovenTimerTotal: number
+  ovenTimerTotal: number,
+  toppings: { topping: { id: string; name: string; emoji: string }; grams: number; count: number }[]
 ): string {
   const tempF = Math.round(ovenTempC * 9 / 5 + 32)
   const bakeMin = Math.round(ovenTimerTotal / 60)
@@ -331,6 +381,17 @@ function formatRecipeText(
   lines.push(`${analysis.hydration < 75 ? "4" : "3"}. Preheat oven to ${ovenTempC}°C / ${tempF}°F (${ovenMode.toUpperCase()} mode).`)
   if (bakeMin > 0) lines.push(`${analysis.hydration < 75 ? "5" : "4"}. Bake for ${bakeMin} minutes, until golden.`)
   lines.push(`${analysis.hydration < 75 ? "6" : "5"}. Cool on a wire rack before slicing.`)
+  if (toppings.length > 0) {
+    lines.push(`${analysis.hydration < 75 ? "7" : "6"}. Decorate as listed below.`)
+  }
+  if (toppings.length > 0) {
+    lines.push(``)
+    lines.push(`─── TOPPINGS & DECORATION ───`)
+    toppings.forEach((t) => {
+      lines.push(`  ${t.grams}g  (${(t.grams * 0.035274).toFixed(2)}oz)  ${t.topping.name}  (${t.count} application${t.count === 1 ? "" : "s"})`)
+    })
+    lines.push(`  Total toppings: ${toppings.reduce((a, t) => a + t.grams, 0)}g`)
+  }
   lines.push(``)
   lines.push(`─── ANALYSIS ───`)
   lines.push(`Total mass:     ${analysis.dryMass + analysis.wetMass}g`)

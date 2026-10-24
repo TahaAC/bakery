@@ -9,12 +9,14 @@ import {
   Microwave,
   Flame,
   Droplets,
+  Sparkles as SparklesIcon,
   FileText,
   Mic,
   MicOff,
   FlaskConical,
   ScrollText,
   Trash2,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +25,8 @@ import { PantryStation } from "./PantryStation"
 import { MixingStation } from "./MixingStation"
 import { StandMixerStation } from "./StandMixerStation"
 import { OvenStation } from "./OvenStation"
+import { ToppingsStation } from "./ToppingsStation"
+import { ShowcaseStation } from "./ShowcaseStation"
 import { SinkStation } from "./SinkStation"
 import { RecipeExporter } from "./RecipeExporter"
 import { VoiceAssistant } from "./VoiceAssistant"
@@ -39,6 +43,8 @@ const STATIONS: {
   { id: "mixing", label: "Mixing", icon: MixingIcon, description: "Whisk bowl by hand" },
   { id: "mixer", label: "Stand Mixer", icon: Microwave, description: "Knead & develop gluten" },
   { id: "oven", label: "Smart Oven", icon: Flame, description: "Bake with real-time physics" },
+  { id: "toppings", label: "Toppings", icon: SparklesIcon, description: "Decorate your bake (touch-friendly)" },
+  { id: "showcase", label: "Showcase", icon: Eye, description: "Display finished cake for the customer" },
   { id: "sink", label: "Sink", icon: Droplets, description: "Wash utensils" },
   { id: "recipe", label: "Recipe", icon: FileText, description: "Export printable card" },
 ]
@@ -68,6 +74,8 @@ export function KitchenApp() {
   const toggleVoice = useKitchen((s) => s.toggleVoice)
   const scienceOverlay = useKitchen((s) => s.scienceOverlay)
   const toggleScience = useKitchen((s) => s.toggleScience)
+  const appliedToppings = useKitchen((s) => s.appliedToppings)
+  const servedToCustomer = useKitchen((s) => s.servedToCustomer)
 
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [scienceOpen, setScienceOpen] = useState(false)
@@ -95,6 +103,8 @@ export function KitchenApp() {
       case "mixing": return <MixingStation />
       case "mixer": return <StandMixerStation />
       case "oven": return <OvenStation />
+      case "toppings": return <ToppingsStation />
+      case "showcase": return <ShowcaseStation />
       case "sink": return <SinkStation />
       case "recipe": return <RecipeExporter />
     }
@@ -133,6 +143,21 @@ export function KitchenApp() {
             {kneadLevel > 0 && (
               <Badge variant="outline" className="text-[10px] font-normal">
                 Knead: {Math.round(kneadLevel * 100)}%
+              </Badge>
+            )}
+            {appliedToppings.length > 0 && (
+              <Badge variant="outline" className="text-[10px] font-normal">
+                Toppings: {appliedToppings.length}
+              </Badge>
+            )}
+            {baking.status === "done" && !servedToCustomer && (
+              <Badge className="text-[10px] font-normal bg-amber-500 text-white border-amber-500 animate-pulse">
+                Ready to serve!
+              </Badge>
+            )}
+            {servedToCustomer && (
+              <Badge className="text-[10px] font-normal bg-rose-500 text-white border-rose-500">
+                Served
               </Badge>
             )}
             {dirtyCount > 0 && (
@@ -187,6 +212,19 @@ export function KitchenApp() {
                 <span>{s.label}</span>
                 {s.id === "oven" && ovenOn && baking.status === "baking" && (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+                )}
+                {s.id === "toppings" && appliedToppings.length > 0 && (
+                  <span className="text-[10px] px-1.5 rounded-full bg-primary/80 text-primary-foreground">
+                    {appliedToppings.length}
+                  </span>
+                )}
+                {s.id === "showcase" && baking.status === "done" && !servedToCustomer && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+                {s.id === "showcase" && servedToCustomer && (
+                  <span className="text-[10px] px-1.5 rounded-full bg-rose-500 text-white">
+                    ✓
+                  </span>
                 )}
                 {s.id === "sink" && dirtyCount > 0 && (
                   <span className="text-[10px] px-1 rounded-full bg-destructive text-destructive-foreground">

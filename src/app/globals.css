@@ -133,6 +133,15 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  html {
+    /* iOS safe-area insets */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
   body {
     @apply bg-background text-foreground;
@@ -141,6 +150,17 @@
       radial-gradient(at 80% 0%, rgba(184, 96, 43, 0.08) 0px, transparent 50%),
       radial-gradient(at 50% 100%, rgba(229, 185, 90, 0.06) 0px, transparent 50%);
     background-attachment: fixed;
+    /* iOS: prevent text size adjust on rotation */
+    -webkit-text-size-adjust: 100%;
+    /* iOS: smooth momentum scrolling on touch */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
+  /* Touch-friendly: ensure all interactive elements are at least 36px tall on mobile */
+  @media (pointer: coarse) {
+    button, [role="button"], a {
+      min-height: 36px;
+    }
   }
 }
 
@@ -288,4 +308,26 @@
   border-radius: 9999px;
   border: 2px solid var(--primary);
   animation: voicePulse 1.6s ease-out infinite;
+}
+
+/* Topping application ripple */
+@keyframes toppingPulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.topping-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  animation: toppingPulse 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* iOS-safe touch region: ensure sliders have larger hit area on touch */
+@media (pointer: coarse) {
+  input[type="range"] {
+    min-height: 28px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
 }
