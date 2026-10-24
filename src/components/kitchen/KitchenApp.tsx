@@ -17,11 +17,15 @@ import {
   ScrollText,
   Trash2,
   Eye,
+  Home,
+  GraduationCap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useKitchen, type StationId } from "@/lib/kitchen-store"
 import { useMounted, formatTimeHMS } from "@/hooks/use-mounted"
+import { useLessonTracker } from "@/hooks/use-lesson-tracker"
+import { getLesson } from "@/lib/lessons"
 import { PantryStation } from "./PantryStation"
 import { MixingStation } from "./MixingStation"
 import { StandMixerStation } from "./StandMixerStation"
@@ -32,6 +36,9 @@ import { SinkStation } from "./SinkStation"
 import { RecipeExporter } from "./RecipeExporter"
 import { VoiceAssistant } from "./VoiceAssistant"
 import { ScienceOverlay } from "./ScienceOverlay"
+import { KitchenBench } from "./KitchenBench"
+import { BakeSchoolStation } from "./BakeSchoolStation"
+import { MascotBubble, CelebrationOverlay } from "./MascotOverlay"
 import { BowlContentsList } from "./BowlView"
 
 const STATIONS: {
@@ -40,6 +47,8 @@ const STATIONS: {
   icon: typeof Flame
   description: string
 }[] = [
+  { id: "bench", label: "Kitchen", icon: Home, description: "Your virtual kitchen bench" },
+  { id: "school", label: "Bake School", icon: GraduationCap, description: "Learn step-by-step with Chef Bear" },
   { id: "pantry", label: "Pantry", icon: ShoppingBasket, description: "Browse & add ingredients" },
   { id: "mixing", label: "Mixing", icon: MixingIcon, description: "Whisk bowl by hand" },
   { id: "mixer", label: "Stand Mixer", icon: Microwave, description: "Knead & develop gluten" },
@@ -84,6 +93,8 @@ export function KitchenApp() {
   // Defers rendering of locale-sensitive time strings until after hydration
   // so SSR HTML matches the first client render.
   const mounted = useMounted()
+  // Auto-track lesson progress + unlock badges based on store state
+  useLessonTracker()
 
   // Sync overlay open states with toggles
   useEffect(() => {
@@ -103,6 +114,8 @@ export function KitchenApp() {
 
   const renderStation = () => {
     switch (activeStation) {
+      case "bench": return <KitchenBench />
+      case "school": return <BakeSchoolStation />
       case "pantry": return <PantryStation />
       case "mixing": return <MixingStation />
       case "mixer": return <StandMixerStation />
@@ -341,11 +354,81 @@ export function KitchenApp() {
       {/* ─── Floating overlays ─── */}
       <VoiceAssistant open={voiceOpen} onClose={() => toggleVoice()} />
       <ScienceOverlay open={scienceOpen} onClose={() => toggleScience()} />
+      <MascotBubble />
+      <CelebrationOverlay />
+
+      {/* ─── Active Lesson step indicator (bottom of screen) ─── */}
+      <ActiveLessonBar />
 
       {/* ─── Footer ─── */}
       <footer className="mt-auto border-t border-border bg-card/60 px-4 py-2 text-[10px] text-muted-foreground text-center print:hidden">
         Ray-traced rendering pipeline · Physics & chemistry simulation · Recipe export — all running locally in your browser.
       </footer>
     </div>
+  )
+}
+
+// ─── Active Lesson step indicator (floating bottom bar) ──────────────────
+
+function ActiveLessonBar() {
+  const activeLessonId = useKitchen((s) => s.activeLessonId)
+  const activeLessonStep = useKitchen((s) => s.activeLessonStep)
+  const exitLesson = useKitchen((s) => s.exitLesson)
+  const setActiveStation = useKitchen((s) => s.setActiveStation)
+  const activeStation = useKitchen((s) => s.activeStation)
+
+  if (!activeLessonId) return null
+  const lesson = getLesson(activeLessonId)
+  if (!lesson) return null
+  const step = lesson.steps[activeLessonStep]
+  if (!step) return null
+
+  const onWrongStation = step.station !== activeStation
+
+  return (
+    <motion.div
+      initial={{ y: 80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 80, opacity: 0 }}
+      className="fixed bottom-0 inset-x-0 z-30 print:hidden"
+    >
+      <div
+        className="mx-auto max-w-3xl m-3 rounded-xl border-2 border-primary/50 p-3 shadow-xl flex items-center gap-3"
+        style={{
+          background: "linear-gradient(135deg, #fff5d8 0%, #ffe0a8 50%, #fcd34d 100%)",
+        }}
+      >
+        <div className="text-2xl shrink-0">{lesson.emoji}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-primary font-bold">
+            <span>{lesson.title}</span>
+            <span>·</span>
+            <span>Step {activeLessonStep + 1}/{lesson.steps.length}</span>
+            {onWrongStation && (
+              <Badge className="ml-1 bg-amber-500 text-white animate-pulse">
+                Go to {step.station} →
+              </Badge>
+            )}
+          </div>
+          <div className="text-sm font-semibold truncate">{step.instruction}</div>
+        </div>
+        {onWrongStation && (
+          <Button
+            size="sm"
+            onClick={() => setActiveStation(step.station)}
+            className="shrink-0"
+          >
+            Go →
+          </Button>
+        )}
+        <button
+          onClick={exitLesson}
+          className="text-xs text-muted-foreground hover:text-destructive px-2 py-1 shrink-0"
+          aria-label="Exit lesson"
+        >
+          Exit
+        </button>
+      </div>
+    </motion.div>
   )
 }

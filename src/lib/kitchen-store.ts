@@ -3,13 +3,17 @@
 import { create } from "zustand"
 import { getIngredient, type Ingredient } from "./ingredients"
 import { TOPPINGS } from "./toppings"
+import { BADGES, LESSONS } from "./lessons"
 
 // Build a fast lookup table of topping ID → topping material
 const TOPPINGS_LOOKUP = Object.fromEntries(TOPPINGS.map((t) => [t.id, t]))
+// Fast lookups for badges and lessons
+const BADGES_LOOKUP = Object.fromEntries(BADGES.map((b) => [b.id, b]))
+const LESSONS_LOOKUP = Object.fromEntries(LESSONS.map((l) => [l.id, l]))
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type StationId = "pantry" | "mixing" | "mixer" | "oven" | "toppings" | "showcase" | "sink" | "recipe"
+export type StationId = "bench" | "pantry" | "mixing" | "mixer" | "oven" | "toppings" | "showcase" | "school" | "sink" | "recipe"
 
 export interface BowlIngredient {
   ingredientId: string
@@ -138,6 +142,35 @@ interface KitchenState {
   rateByCustomer: (stars: number) => void
   resetShowcase: () => void
 
+  // ─── Learning environment ───
+  /** IDs of unlocked achievement badges */
+  unlockedBadges: string[]
+  /** IDs of completed lessons */
+  completedLessons: string[]
+  /** ID of the currently active lesson (or null for free-play) */
+  activeLessonId: string | null
+  /** Index of the current step within the active lesson */
+  activeLessonStep: number
+  /** Science notes that have been viewed (for "Kitchen Scientist" badge) */
+  viewedScienceNotes: string[]
+  /** Whether Chef Bear mascot speech bubble is visible */
+  mascotVisible: boolean
+  /** Current message from the mascot */
+  mascotMessage: string
+  /** Whether the lesson-complete celebration is showing */
+  celebrationVisible: boolean
+  unlockBadge: (id: string) => void
+  hasBadge: (id: string) => boolean
+  startLesson: (id: string) => void
+  exitLesson: () => void
+  advanceLessonStep: () => void
+  completeLesson: (id: string) => void
+  markScienceNoteViewed: (trigger: string) => void
+  showMascot: (message: string) => void
+  hideMascot: () => void
+  showCelebration: () => void
+  hideCelebration: () => void
+
   // ─── Toggles ───
   scienceOverlay: boolean
   voiceAssistant: boolean
@@ -248,16 +281,18 @@ function generateCustomerReview(
 // ─── Store ────────────────────────────────────────────────────────────────
 
 export const useKitchen = create<KitchenState>((set, get) => ({
-  activeStation: "pantry",
+  activeStation: "bench",
   setActiveStation: (s) => {
     set({ activeStation: s })
     const labels: Record<StationId, string> = {
+      bench: "Entered the Kitchen",
       pantry: "Opened the Pantry",
       mixing: "Moved to Mixing Station",
       mixer: "Engaged the Stand Mixer",
       oven: "Opened the Smart Oven",
       toppings: "Opened the Toppings Station",
       showcase: "Presented the bake at the Showcase",
+      school: "Opened Bake School",
       sink: "Went to the Sink",
       recipe: "Opened Recipe Exporter",
     }
@@ -515,6 +550,123 @@ export const useKitchen = create<KitchenState>((set, get) => ({
     })
     get().pushLog("Showcase reset — ready for next customer", "action")
   },
+
+  // ─── Learning environment state ───
+  unlockedBadges: [],
+  completedLessons: [],
+  activeLessonId: null,
+  activeLessonStep: 0,
+  viewedScienceNotes: [],
+  mascotVisible: false,
+  mascotMessage: "",
+  celebrationVisible: false,
+  unlockBadge: (id) => {
+    set((s) => {
+      if (s.unlockedBadges.includes(id)) return s // already unlocked
+      const badge = BADGES_LOOKUP[id]
+      if (badge) {
+        // defer mascot message via setTimeout to avoid setState-in-render
+        setTimeout(() => {
+          get().showMascot(`New badge unlocked: ${badge.emoji} ${badge.name}! ${badge.description}`)
+        }, 0)
+        get().pushLog(`🏆 Badge unlocked: ${badge.name}`, "action")
+      }
+      return { unlockedBadges: [...s.unlockedBadges, id] }
+    })
+  },
+  hasBadge: (id) => get().unlockedBadges.includes(id),
+  startLesson: (id) => {
+    const lesson = LESSONS_LOOKUP[id]
+    if (!lesson) return
+    set({
+      activeLessonId: id,
+      activeLessonStep: 0,
+      mascotVisible: true,
+      mascotMessage: `${lesson.emoji} ${lesson.title}! ${lesson.description}`,
+    })
+    get().pushLog(`Started lesson: ${lesson.title}`, "info")
+    // Navigate to the first step's station
+    const firstStep = lesson.steps[0]
+    if (firstStep) {
+      setTimeout(() => get().setActiveStation(firstStep.station), 200)
+    }
+  },
+  exitLesson: () => {
+    set({ activeLessonId: null, activeLessonStep: 0 })
+    get().pushLog("Exited lesson (free play mode)", "info")
+  },
+  advanceLessonStep: () => {
+    const s = get()
+    if (!s.activeLessonId) return
+    const lesson = LESSONS_LOOKUP[s.activeLessonId]
+    if (!lesson) return
+    const nextStep = s.activeLessonStep + 1
+    if (nextStep >= lesson.steps.length) {
+      // Lesson complete
+      get().completeLesson(lesson.id)
+      return
+    }
+    set({ activeLessonStep: nextStep })
+    const step = lesson.steps[nextStep]
+    if (step) {
+      get().pushLog(`Lesson step ${nextStep + 1}/${lesson.steps.length}: ${step.instruction}`, "info")
+      // Show fun fact if available
+      if (step.funFact) {
+        setTimeout(() => {
+          get().showMascot(`🌟 Fun fact: ${step.funFact}`)
+        }, 600)
+      }
+      // Navigate to next step's station
+      setTimeout(() => get().setActiveStation(step.station), 300)
+    }
+  },
+  completeLesson: (id) => {
+    const lesson = LESSONS_LOOKUP[id]
+    if (!lesson) return
+    set((s) => ({
+      completedLessons: s.completedLessons.includes(id)
+        ? s.completedLessons
+        : [...s.completedLessons, id],
+      activeLessonId: null,
+      activeLessonStep: 0,
+      celebrationVisible: true,
+    }))
+    // Unlock lesson badge
+    setTimeout(() => get().unlockBadge(lesson.badgeId), 100)
+    // Milestone badges
+    const completedCount = get().completedLessons.length
+    if (completedCount >= 5) {
+      setTimeout(() => get().unlockBadge("lesson-5"), 300)
+    }
+    if (completedCount >= 10) {
+      setTimeout(() => get().unlockBadge("lesson-10"), 400)
+    }
+    get().pushLog(`🎓 Lesson complete: ${lesson.title}!`, "action")
+    setTimeout(() => {
+      get().showMascot(`🎓 You finished ${lesson.title}! You're getting better at this!`)
+    }, 500)
+  },
+  markScienceNoteViewed: (trigger) => {
+    set((s) => {
+      if (s.viewedScienceNotes.includes(trigger)) return s
+      const viewed = [...s.viewedScienceNotes, trigger]
+      // Auto-unlock Kitchen Scientist badge after 5 unique views
+      if (viewed.length >= 5 && !s.unlockedBadges.includes("scientist")) {
+        setTimeout(() => get().unlockBadge("scientist"), 100)
+      }
+      return { viewedScienceNotes: viewed }
+    })
+  },
+  showMascot: (message) => {
+    set({ mascotVisible: true, mascotMessage: message })
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+      if (get().mascotMessage === message) get().hideMascot()
+    }, 8000)
+  },
+  hideMascot: () => set({ mascotVisible: false }),
+  showCelebration: () => set({ celebrationVisible: true }),
+  hideCelebration: () => set({ celebrationVisible: false }),
 
   scienceOverlay: true,
   voiceAssistant: false,

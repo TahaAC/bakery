@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Master Baker VR — Virtual Baking Kitchen",
-  description: "Ultra-realistic virtual baking kitchen with ray-traced rendering, real-time physics, chemistry simulation, voice control, and printable recipe export.",
-  keywords: ["baking", "kitchen", "simulation", "virtual bakery", "recipe", "chemistry", "Next.js"],
+  title: "Master Baker VR — Virtual Baking Kitchen for Kids",
+  description: "A fun, photorealistic virtual baking kitchen that teaches kids real cooking science. Learn step-by-step with Chef Bear, earn badges, and bake amazing treats!",
+  keywords: ["baking", "kitchen", "kids learning", "cooking school", "simulation", "virtual bakery", "recipe", "chemistry", "Next.js"],
   authors: [{ name: "Master Baker VR" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
