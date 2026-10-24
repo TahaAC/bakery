@@ -20,10 +20,12 @@ import {
   TOPPINGS,
   TOPPING_CATEGORY_META,
   TOPPING_METHOD_META,
+  NOZZLE_META,
   generateToppingParticles,
   type ToppingMaterial,
   type ToppingCategory,
   type ToppingApplicationMethod,
+  type NozzleType,
 } from "@/lib/toppings"
 import {
   useKitchen,
@@ -34,7 +36,7 @@ import {
 } from "@/lib/kitchen-store"
 import { findScienceNote } from "@/lib/science"
 
-const CATEGORIES: ToppingCategory[] = ["glaze", "frosting", "decoration", "fruit", "nut", "finish"]
+const CATEGORIES: ToppingCategory[] = ["glaze", "frosting", "cream", "decoration", "fruit", "nut", "accent", "finish"]
 
 export function ToppingsStation() {
   const bowl = useKitchen((s) => s.bowl)
@@ -43,6 +45,8 @@ export function ToppingsStation() {
   const appliedToppings = useKitchen((s) => s.appliedToppings)
   const selectedToppingId = useKitchen((s) => s.selectedToppingId)
   const toppingBrushSize = useKitchen((s) => s.toppingBrushSize)
+  const selectedNozzle = useKitchen((s) => s.selectedNozzle)
+  const setSelectedNozzle = useKitchen((s) => s.setSelectedNozzle)
   const setSelectedTopping = useKitchen((s) => s.setSelectedTopping)
   const setToppingBrushSize = useKitchen((s) => s.setToppingBrushSize)
   const applyTopping = useKitchen((s) => s.applyTopping)
@@ -213,6 +217,9 @@ export function ToppingsStation() {
             amount: toppingBrushSize,
             rotation: 0,
             path,
+            // Attach the selected nozzle type for pipe-method toppings
+            // so the renderer knows which visual style to use
+            nozzleType: method === "pipe" ? selectedNozzle : undefined,
           })
         } else if (method === "layer") {
           // Layer = broad even coat, apply once at centroid
@@ -259,7 +266,7 @@ export function ToppingsStation() {
       strokePathRef.current = []
       setStrokePath([])
     },
-    [selectedTopping, toppingBrushSize, applyTopping]
+    [selectedTopping, toppingBrushSize, selectedNozzle, applyTopping]
   )
 
   // Prevent the whole page from scrolling on touch when interacting with canvas
@@ -652,6 +659,40 @@ export function ToppingsStation() {
           </div>
         </div>
 
+        {/* Nozzle selector — only visible when a pipe-method topping is selected */}
+        {selectedTopping?.method === "pipe" && (
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> Piping Nozzle
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(Object.keys(NOZZLE_META) as NozzleType[]).map((nz) => {
+                const meta = NOZZLE_META[nz]
+                const isSelected = selectedNozzle === nz
+                return (
+                  <motion.button
+                    key={nz}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setSelectedNozzle(nz)}
+                    className={`flex flex-col items-center gap-0.5 p-2 rounded-md border text-xs font-medium transition ${
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card hover:border-primary/40"
+                    }`}
+                    title={meta.description}
+                  >
+                    <span className="text-lg">{meta.icon}</span>
+                    <span className="text-[10px] leading-tight">{meta.label}</span>
+                  </motion.button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              {NOZZLE_META[selectedNozzle as NozzleType]?.description}
+            </p>
+          </div>
+        )}
+
         {/* Action buttons — large for touch */}
         <div className="grid grid-cols-2 gap-2">
           <Button
@@ -739,8 +780,41 @@ function ToppingInstance({
 
   // ─── Drizzle / Pipe: render as a stroked path ───
   if ((topping.method === "drizzle" || topping.method === "pipe") && applied.path && applied.path.length > 1) {
+    const nozzle = applied.nozzleType ?? "round"
+    const isPipe = topping.method === "pipe"
+    // Base stroke width varies by nozzle type for visual distinction
+    const baseWidth = isPipe
+      ? nozzle === "round" ? 7 + applied.amount * 10
+      : nozzle === "star" ? 9 + applied.amount * 14
+      : nozzle === "leaf" ? 8 + applied.amount * 12
+      : nozzle === "petal" ? 10 + applied.amount * 16
+      : nozzle === "basket" ? 8 + applied.amount * 12
+      : nozzle === "french" ? 7 + applied.amount * 11
+      : 8 + applied.amount * 12
+      : 3 + applied.amount * 4
+
+    // For star/french nozzles, add ridged edges via dashed overlay
+    const isRidged = isPipe && (nozzle === "star" || nozzle === "french")
+    // For leaf nozzle, add a center vein
+    const isLeaf = isPipe && nozzle === "leaf"
+    // For basket, add perpendicular dashes
+    const isBasket = isPipe && nozzle === "basket"
+    // For petal, add wavy edge
+    const isPetal = isPipe && nozzle === "petal"
+
     return (
       <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
+        {/* Drop shadow */}
+        <polyline
+          points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
+          fill="none"
+          stroke="rgba(0,0,0,0.15)"
+          strokeWidth={baseWidth + 1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transform: "translateY(1px)" }}
+        />
+        {/* Main stroke */}
         <motion.polyline
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
@@ -748,24 +822,71 @@ function ToppingInstance({
           points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
           fill="none"
           stroke={topping.color}
-          strokeWidth={topping.method === "pipe" ? 8 + applied.amount * 12 : 3 + applied.amount * 4}
+          strokeWidth={baseWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{
-            filter: `drop-shadow(0 1px 1px rgba(0,0,0,0.25))`,
-          }}
         />
-        {/* Highlight along the stroke */}
+        {/* Highlight along the stroke (specular) */}
         <polyline
           points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
           fill="none"
           stroke={topping.highlight ?? "#ffffff"}
-          strokeWidth={topping.method === "pipe" ? 2 : 1}
+          strokeWidth={isPipe ? Math.max(1.5, baseWidth * 0.25) : 1}
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.55}
           style={{ transform: "translateY(-1px)" }}
         />
+        {/* Ridged texture for star/french nozzles */}
+        {isRidged && (
+          <polyline
+            points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
+            fill="none"
+            stroke={topping.highlight ?? "#ffffff"}
+            strokeWidth={baseWidth * 0.7}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            strokeDasharray="3 3"
+            opacity={0.35}
+          />
+        )}
+        {/* Leaf vein (center line) */}
+        {isLeaf && (
+          <polyline
+            points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
+            fill="none"
+            stroke={topping.highlight ?? "#ffffff"}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.5}
+          />
+        )}
+        {/* Basket-weave (perpendicular dashes) */}
+        {isBasket && (
+          <polyline
+            points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
+            fill="none"
+            stroke={topping.highlight ?? "#ffffff"}
+            strokeWidth={baseWidth * 0.8}
+            strokeLinecap="butt"
+            strokeDasharray="4 6"
+            opacity={0.3}
+          />
+        )}
+        {/* Petal ruffled edge (wavy) */}
+        {isPetal && (
+          <polyline
+            points={applied.path.map((p) => `${p.x}%,${p.y}%`).join(" ")}
+            fill="none"
+            stroke={topping.highlight ?? "#ffffff"}
+            strokeWidth={baseWidth * 0.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="1 4"
+            opacity={0.4}
+          />
+        )}
       </svg>
     )
   }

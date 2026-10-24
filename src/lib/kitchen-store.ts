@@ -46,6 +46,8 @@ export interface AppliedTopping {
   rotation: number
   /** Stroke path for drizzle/pipe methods (array of {x,y} in canvas %) */
   path?: { x: number; y: number }[]
+  /** Piping nozzle type for pipe-method toppings (affects visual style) */
+  nozzleType?: string
   /** Pre-computed particles for dust/scatter methods.
    *  Generated once at apply-time so renders are deterministic. */
   particles?: ToppingParticle[]
@@ -165,8 +167,11 @@ interface KitchenState {
   selectedToppingId: string | null
   /** Brush size 0.3..1.5 — affects per-stroke amount */
   toppingBrushSize: number
+  /** Currently selected piping nozzle (for pipe-method toppings) */
+  selectedNozzle: string
   setSelectedTopping: (id: string | null) => void
   setToppingBrushSize: (s: number) => void
+  setSelectedNozzle: (n: string) => void
   applyTopping: (t: Omit<AppliedTopping, "id">) => void
   removeTopping: (id: string) => void
   clearToppings: () => void
@@ -629,6 +634,7 @@ export const useKitchen = create<KitchenState>((set, get) => ({
   appliedToppings: [],
   selectedToppingId: null,
   toppingBrushSize: 0.7,
+  selectedNozzle: "star",
   setSelectedTopping: (id) => {
     set({ selectedToppingId: id })
     if (id) {
@@ -637,6 +643,7 @@ export const useKitchen = create<KitchenState>((set, get) => ({
     }
   },
   setToppingBrushSize: (s) => set({ toppingBrushSize: Math.min(1.5, Math.max(0.3, s)) }),
+  setSelectedNozzle: (n) => set({ selectedNozzle: n }),
   applyTopping: (t) => {
     const id = uid()
     set((s) => ({ appliedToppings: [...s.appliedToppings, { ...t, id }] }))
