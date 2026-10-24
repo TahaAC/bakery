@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Play, Pause, RotateCcw, Gauge, Sparkles, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,23 @@ export function MixingStation() {
   const [speed, setSpeed] = useState(3)
   const lastTickRef = useRef<number>(0)
   const rafRef = useRef<number | null>(null)
+
+  // Pre-compute flour dust particles ONCE so they don't regenerate on every
+  // render frame (which would cause visible "bubbling" while mixing).
+  // useMemo with [] keeps them stable across re-renders.
+  const flourParticles = useMemo(
+    () =>
+      Array.from({ length: 14 }).map(() => ({
+        left: 30 + Math.random() * 40,
+        top: 40 + Math.random() * 30,
+        size: 2 + Math.random() * 3,
+        dx: (Math.random() - 0.5) * 60,
+        dy: -20 - Math.random() * 30,
+        dur: 1 + Math.random() * 1.5,
+        delay: Math.random() * 1.5,
+      })),
+    []
+  )
 
   // Mixing loop: increases mixLevel based on speed and bowl wetness
   useEffect(() => {
@@ -102,22 +119,22 @@ export function MixingStation() {
             }}
           />
           <div className="absolute inset-0 sunbeam" />
-          {/* Flour dust particles while mixing */}
+          {/* Flour dust particles while mixing (pre-computed, no flicker) */}
           {isMixing && speed > 4 && (
             <div className="absolute inset-0 pointer-events-none">
-              {Array.from({ length: 14 }).map((_, i) => (
+              {flourParticles.map((p, i) => (
                 <span
                   key={i}
                   className="flour-particle"
                   style={{
-                    left: `${30 + Math.random() * 40}%`,
-                    top: `${40 + Math.random() * 30}%`,
-                    width: `${2 + Math.random() * 3}px`,
-                    height: `${2 + Math.random() * 3}px`,
-                    ["--dx" as string]: `${(Math.random() - 0.5) * 60}px`,
-                    ["--dy" as string]: `${-20 - Math.random() * 30}px`,
-                    ["--dur" as string]: `${1 + Math.random() * 1.5}s`,
-                    animationDelay: `${Math.random() * 1.5}s`,
+                    left: `${p.left}%`,
+                    top: `${p.top}%`,
+                    width: `${p.size}px`,
+                    height: `${p.size}px`,
+                    ["--dx" as string]: `${p.dx}px`,
+                    ["--dy" as string]: `${p.dy}px`,
+                    ["--dur" as string]: `${p.dur}s`,
+                    animationDelay: `${p.delay}s`,
                   }}
                 />
               ))}

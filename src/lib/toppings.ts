@@ -391,3 +391,97 @@ export const TOPPING_METHOD_META: Record<
 export function getTopping(id: string): ToppingMaterial | undefined {
   return TOPPINGS.find((t) => t.id === id)
 }
+
+// ─── Particle generation ─────────────────────────────────────────────────
+//
+// IMPORTANT: These helpers are called ONCE at apply-time (when the user
+// finishes a stroke / taps to place a topping). The returned particles are
+// stored on the AppliedTopping and reused on every render. This prevents
+// the "bubbling" / flicker that happens when Math.random() is called inside
+// render — every state update would otherwise regenerate positions and
+// make the topping visually shift.
+
+export interface ToppingParticle {
+  x: number
+  y: number
+  size: number
+  rotation: number
+  useHighlight: boolean
+  opacity: number
+}
+
+/**
+ * Pre-compute particles for `dust` and `scatter` topping methods.
+ * Called once when the topping is applied; the result is stored on
+ * the AppliedTopping and rendered deterministically thereafter.
+ *
+ * @param method   "dust" or "scatter"
+ * @param amount   0..1 size/quantity factor (controls particle count + spread)
+ * @param baseSize The visual size of the topping instance in px (used to scale offsets)
+ */
+export function generateToppingParticles(
+  method: "dust" | "scatter",
+  amount: number,
+  baseSize: number
+): ToppingParticle[] {
+  if (method === "dust") {
+    const count = Math.max(6, Math.floor(amount * 18))
+    const particles: ToppingParticle[] = []
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2
+      const dist = (Math.random() * 0.5 + 0.2) * baseSize
+      const px = Math.cos(angle) * dist + (Math.random() - 0.5) * baseSize * 0.4
+      const py = Math.sin(angle) * dist + (Math.random() - 0.5) * baseSize * 0.4
+      particles.push({
+        x: px,
+        y: py,
+        size: 1 + Math.random() * 2.5,
+        rotation: 0,
+        useHighlight: Math.random() > 0.7,
+        opacity: 0.75 + Math.random() * 0.25,
+      })
+    }
+    return particles
+  }
+
+  // scatter
+  const count = 4 + Math.floor(amount * 5)
+  const particles: ToppingParticle[] = []
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: (Math.random() - 0.5) * baseSize,
+      y: (Math.random() - 0.5) * baseSize,
+      size: 2 + Math.random() * 4,
+      rotation: Math.random() * 360,
+      useHighlight: Math.random() > 0.6,
+      opacity: 1,
+    })
+  }
+  return particles
+}
+
+/**
+ * Pre-compute confetti particles for celebrations.
+ * Same pattern — called once when the celebration starts, rendered
+ * deterministically thereafter to avoid flicker.
+ */
+export function generateConfetti(count: number): {
+  left: number
+  delay: number
+  duration: number
+  direction: number
+  color: string
+}[] {
+  const colors = [
+    "#E84A4F", "#F5D040", "#5A8ACF", "#7AC07A",
+    "#B070C8", "#FF8A40", "#E58AB8", "#7FBED6",
+  ]
+  return Array.from({ length: count }).map(() => ({
+    left: Math.random() * 100,
+    delay: Math.random() * 0.6,
+    duration: 2 + Math.random() * 1.5,
+    direction: Math.random() > 0.5 ? 1 : -1,
+    color: colors[Math.floor(Math.random() * colors.length)],
+  }))
+}
+

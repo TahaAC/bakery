@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { getIngredient, type Ingredient } from "./ingredients"
-import { TOPPINGS } from "./toppings"
+import { TOPPINGS, type ToppingParticle } from "./toppings"
 import { BADGES, LESSONS } from "./lessons"
 
 // Build a fast lookup table of topping ID → topping material
@@ -33,6 +33,9 @@ export interface AppliedTopping {
   rotation: number
   /** Stroke path for drizzle/pipe methods (array of {x,y} in canvas %) */
   path?: { x: number; y: number }[]
+  /** Pre-computed particles for dust/scatter methods.
+   *  Generated once at apply-time so renders are deterministic. */
+  particles?: ToppingParticle[]
 }
 
 export type OvenMode = "bake" | "fan" | "broil" | "proof"

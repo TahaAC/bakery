@@ -53,6 +53,13 @@ export function ShowcaseStation() {
   const [likeCount, setLikeCount] = useState(0)
   const celebrationTimer = useRef<number | null>(null)
 
+  // Pre-compute confetti particles ONCE per celebration so they don't
+  // regenerate (and visually "bubble") on every render during the animation.
+  const [confettiPieces, setConfettiPieces] = useState<
+    { left: number; duration: number; delay: number; direction: number; color: string }[]
+  >([])
+  const lastCelebrationKey = useRef<number>(0)
+
   // Determine cake readiness
   const layers = bowlLayers(bowl)
   const hasBakedGood = layers.length > 0 && (baking.status === "done" || baking.brownLevel > 0.05)
@@ -86,9 +93,23 @@ export function ShowcaseStation() {
   const toppingTotalGrams = totalToppingGrams(appliedToppings, toppingBrushSize)
   const totalMass = bowl.reduce((a, b) => a + b.grams, 0) + toppingTotalGrams
 
-  // Trigger celebration when cake is served
+  // Trigger celebration when cake is served.
+  // Confetti pieces are pre-computed ONCE here (using servedAt as a stable
+  // dependency key) so they don't regenerate on every render during the
+  // animation, which would cause visible flicker ("bubbling").
   useEffect(() => {
-    if (servedToCustomer) {
+    if (servedToCustomer && servedAt && servedAt !== lastCelebrationKey.current) {
+      lastCelebrationKey.current = servedAt
+      // Generate 40 confetti pieces with stable random properties
+      const pieces = Array.from({ length: 40 }).map(() => ({
+        left: Math.random() * 100,
+        duration: 2 + Math.random() * 1.5,
+        delay: Math.random() * 0.6,
+        direction: Math.random() > 0.5 ? 1 : -1,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      }))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfettiPieces(pieces)
       setShowCelebration(true)
       if (celebrationTimer.current) window.clearTimeout(celebrationTimer.current)
       celebrationTimer.current = window.setTimeout(() => setShowCelebration(false), 3500)
@@ -320,29 +341,29 @@ export function ShowcaseStation() {
             </motion.button>
           )}
 
-          {/* Celebration confetti when served */}
+          {/* Celebration confetti when served (pre-computed, no flicker) */}
           <AnimatePresence>
             {showCelebration && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                {Array.from({ length: 40 }).map((_, i) => (
+                {confettiPieces.map((piece, i) => (
                   <motion.div
                     key={i}
                     className="absolute w-2 h-3"
                     style={{
-                      left: `${Math.random() * 100}%`,
+                      left: `${piece.left}%`,
                       top: "-20px",
-                      background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                      background: piece.color,
                       borderRadius: "2px",
                     }}
                     initial={{ y: -20, rotate: 0, opacity: 1 }}
                     animate={{
                       y: ["-20px", "110%"],
-                      rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1) * 3],
+                      rotate: [0, 360 * piece.direction * 3],
                       opacity: [1, 1, 0.6],
                     }}
                     transition={{
-                      duration: 2 + Math.random() * 1.5,
-                      delay: Math.random() * 0.6,
+                      duration: piece.duration,
+                      delay: piece.delay,
                       ease: "easeIn",
                     }}
                   />
@@ -809,46 +830,41 @@ function ShowcaseTopping({
     >
       {topping.method === "dust" ? (
         <>
-          {Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i / 8) * Math.PI * 2
-            const dist = (Math.random() * 0.5 + 0.2) * size
-            return (
-              <span
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  left: `calc(50% + ${Math.cos(angle) * dist}px)`,
-                  top: `calc(50% + ${Math.sin(angle) * dist}px)`,
-                  width: `${1 + Math.random() * 2}px`,
-                  height: `${1 + Math.random() * 2}px`,
-                  background: topping.color,
-                  opacity: 0.8,
-                }}
-              />
-            )
-          })}
+          {(applied.particles ?? []).map((p, i) => (
+            <span
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                left: `calc(50% + ${p.x}px)`,
+                top: `calc(50% + ${p.y}px)`,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                background: p.useHighlight ? topping.highlight ?? topping.color : topping.color,
+                opacity: p.opacity,
+              }}
+            />
+          ))}
         </>
       ) : topping.method === "scatter" ? (
         <>
-          {Array.from({ length: 4 + Math.floor(applied.amount * 4) }).map((_, i) => {
+          {(applied.particles ?? []).map((p, i) => {
             const isSprinkle = topping.id.includes("sprinkles")
-            const px = (Math.random() - 0.5) * size
-            const py = (Math.random() - 0.5) * size
-            const ps = 2 + Math.random() * 3
             return (
               <span
                 key={i}
                 className="absolute"
                 style={{
-                  left: `calc(50% + ${px}px)`,
-                  top: `calc(50% + ${py}px)`,
-                  width: isSprinkle ? `${ps * 2.5}px` : `${ps}px`,
-                  height: isSprinkle ? `${ps * 0.8}px` : `${ps}px`,
+                  left: `calc(50% + ${p.x}px)`,
+                  top: `calc(50% + ${p.y}px)`,
+                  width: isSprinkle ? `${p.size * 2.5}px` : `${p.size}px`,
+                  height: isSprinkle ? `${p.size * 0.8}px` : `${p.size}px`,
                   background: isSprinkle
                     ? CONFETTI_COLORS[i % CONFETTI_COLORS.length]
+                    : p.useHighlight
+                    ? topping.highlight ?? topping.color
                     : topping.color,
                   borderRadius: isSprinkle ? "2px" : "40% 60% 50% 50%",
-                  transform: isSprinkle ? `rotate(${Math.random() * 360}deg)` : undefined,
+                  transform: isSprinkle ? `rotate(${p.rotation}deg)` : undefined,
                 }}
               />
             )

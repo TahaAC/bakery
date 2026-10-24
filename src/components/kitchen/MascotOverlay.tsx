@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
+import { useMemo } from "react"
 import { X, PartyPopper, Award } from "lucide-react"
 import { useKitchen } from "@/lib/kitchen-store"
 import { getBadge } from "@/lib/lessons"
@@ -71,6 +72,22 @@ export function CelebrationOverlay() {
   const completedLessons = useKitchen((s) => s.completedLessons)
   const setActiveStation = useKitchen((s) => s.setActiveStation)
 
+  // Pre-compute confetti pieces ONCE per visibility mount.
+  // useMemo with [visible] dependency means pieces are regenerated only
+  // when the overlay is re-opened — not on every render, which would
+  // cause visible flicker ("bubbling") during the animation.
+  const confettiPieces = useMemo(
+    () =>
+      Array.from({ length: 30 }).map(() => ({
+        left: Math.random() * 100,
+        direction: Math.random() > 0.5 ? 1 : -1,
+        duration: 2 + Math.random(),
+        delay: Math.random() * 0.5,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      })),
+    [visible]
+  )
+
   const handleDone = () => {
     hideCelebration()
     setActiveStation("bench")
@@ -94,26 +111,26 @@ export function CelebrationOverlay() {
             className="relative max-w-md w-full rounded-2xl bg-card border-4 border-primary/40 p-6 shadow-2xl text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Confetti */}
+            {/* Confetti (pre-computed, no flicker) */}
             <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-              {Array.from({ length: 30 }).map((_, i) => (
+              {confettiPieces.map((piece, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-2 h-3"
                   style={{
-                    left: `${Math.random() * 100}%`,
+                    left: `${piece.left}%`,
                     top: "-20px",
-                    background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                    background: piece.color,
                     borderRadius: "2px",
                   }}
                   initial={{ y: -20, rotate: 0 }}
                   animate={{
                     y: ["-20px", "120%"],
-                    rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1) * 3],
+                    rotate: [0, 360 * piece.direction * 3],
                   }}
                   transition={{
-                    duration: 2 + Math.random(),
-                    delay: Math.random() * 0.5,
+                    duration: piece.duration,
+                    delay: piece.delay,
                     repeat: Infinity,
                   }}
                 />

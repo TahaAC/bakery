@@ -20,6 +20,7 @@ import {
   TOPPINGS,
   TOPPING_CATEGORY_META,
   TOPPING_METHOD_META,
+  generateToppingParticles,
   type ToppingMaterial,
   type ToppingCategory,
   type ToppingApplicationMethod,
@@ -151,17 +152,22 @@ export function ToppingsStation() {
         return [...prev, p]
       })
 
-      // For scatter/dust methods, apply small topping instances at intervals along the stroke
+      // For scatter/dust methods, apply small topping instances at intervals along the stroke.
+      // Particles are pre-computed ONCE here at apply-time so the render is deterministic
+      // and does NOT flicker ("bubble") on subsequent state updates.
       const method = selectedTopping.method
       if (method === "scatter" || method === "dust") {
         // Apply probabilistically based on distance
         if (Math.random() < 0.18) {
+          const amt = 0.3 + Math.random() * 0.4
+          const baseSize = 12 + amt * 22
           applyTopping({
             toppingId: selectedTopping.id,
             x: p.x + (Math.random() - 0.5) * 8,
             y: p.y + (Math.random() - 0.5) * 8,
-            amount: 0.3 + Math.random() * 0.4,
+            amount: amt,
             rotation: Math.random() * 360,
+            particles: generateToppingParticles(method, amt, baseSize),
           })
         }
       }
@@ -201,6 +207,21 @@ export function ToppingsStation() {
             y: cy,
             amount: toppingBrushSize,
             rotation: 0,
+          })
+        } else if (method === "dust" || method === "scatter") {
+          // Final stroke for dust/scatter — emit one larger cluster at the centroid
+          // with pre-computed particles so the render stays stable.
+          const cx = strokePath.reduce((a, p) => a + p.x, 0) / strokePath.length
+          const cy = strokePath.reduce((a, p) => a + p.y, 0) / strokePath.length
+          const amt = toppingBrushSize
+          const baseSize = 12 + amt * 22
+          applyTopping({
+            toppingId: selectedTopping.id,
+            x: cx,
+            y: cy,
+            amount: amt,
+            rotation: Math.random() * 360,
+            particles: generateToppingParticles(method, amt, baseSize),
           })
         }
       }
@@ -719,9 +740,9 @@ function ToppingInstance({
     )
   }
 
-  // ─── Dust: scattered small particles ───
+  // ─── Dust: scattered small particles (pre-computed at apply-time) ───
   if (topping.method === "dust") {
-    const particleCount = Math.max(6, Math.floor(applied.amount * 18))
+    const particles = applied.particles ?? []
     return (
       <div
         className="absolute"
@@ -734,33 +755,28 @@ function ToppingInstance({
           pointerEvents: "none",
         }}
       >
-        {Array.from({ length: particleCount }).map((_, i) => {
-          const angle = (i / particleCount) * Math.PI * 2
-          const dist = (Math.random() * 0.5 + 0.2) * size
-          const px = Math.cos(angle) * dist + (Math.random() - 0.5) * size * 0.4
-          const py = Math.sin(angle) * dist + (Math.random() - 0.5) * size * 0.4
-          const ps = 1 + Math.random() * 2.5
-          return (
-            <span
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                left: `calc(50% + ${px}px)`,
-                top: `calc(50% + ${py}px)`,
-                width: `${ps}px`,
-                height: `${ps}px`,
-                background: Math.random() > 0.7 ? topping.highlight ?? topping.color : topping.color,
-                opacity: 0.75 + Math.random() * 0.25,
-              }}
-            />
-          )
-        })}
+        {particles.map((p, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `calc(50% + ${p.x}px)`,
+              top: `calc(50% + ${p.y}px)`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              background: p.useHighlight ? topping.highlight ?? topping.color : topping.color,
+              opacity: p.opacity,
+            }}
+          />
+        ))}
       </div>
     )
   }
 
-  // ─── Scatter: discrete pieces (sprinkles, nuts) ───
+  // ─── Scatter: discrete pieces (sprinkles, nuts) — pre-computed at apply-time ───
   if (topping.method === "scatter") {
+    const particles = applied.particles ?? []
+    const isSprinkle = topping.id.includes("sprinkles")
     return (
       <motion.div
         initial={{ scale: 0.4, opacity: 0, y: -4 }}
@@ -776,20 +792,14 @@ function ToppingInstance({
           pointerEvents: "none",
         }}
       >
-        {/* Multi-piece scatter */}
-        {Array.from({ length: 4 + Math.floor(applied.amount * 5) }).map((_, i) => {
-          const px = (Math.random() - 0.5) * size
-          const py = (Math.random() - 0.5) * size
-          const ps = 2 + Math.random() * 4
-          // Different shapes per topping type
-          const isSprinkle = topping.id.includes("sprinkles")
+        {particles.map((p, i) => {
           const shape: React.CSSProperties = {
             position: "absolute",
-            left: `calc(50% + ${px}px)`,
-            top: `calc(50% + ${py}px)`,
+            left: `calc(50% + ${p.x}px)`,
+            top: `calc(50% + ${p.y}px)`,
             background: isSprinkle
               ? SPRINKLE_COLORS[i % SPRINKLE_COLORS.length]
-              : Math.random() > 0.6
+              : p.useHighlight
               ? topping.highlight ?? topping.color
               : topping.color,
           }
@@ -799,10 +809,10 @@ function ToppingInstance({
                 key={i}
                 style={{
                   ...shape,
-                  width: `${ps * 2.5}px`,
-                  height: `${ps * 0.8}px`,
+                  width: `${p.size * 2.5}px`,
+                  height: `${p.size * 0.8}px`,
                   borderRadius: "2px",
-                  transform: `rotate(${Math.random() * 360}deg)`,
+                  transform: `rotate(${p.rotation}deg)`,
                   boxShadow: "0 0.5px 0.5px rgba(0,0,0,0.3)",
                 }}
               />
@@ -814,8 +824,8 @@ function ToppingInstance({
               key={i}
               style={{
                 ...shape,
-                width: `${ps}px`,
-                height: `${ps}px`,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
                 borderRadius: "40% 60% 50% 50%",
                 boxShadow: "0 0.5px 0.5px rgba(0,0,0,0.25)",
               }}
