@@ -146,26 +146,69 @@ export function BowlView({
               animate={{ height: `${fillHeight * 100}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               style={{
-                background: `linear-gradient(180deg, ${mixedHex}, ${mixedHex}cc)`,
-                boxShadow: "inset 0 4px 12px rgba(0,0,0,0.2), 0 -2px 8px rgba(0,0,0,0.15)",
+                background:
+                  `radial-gradient(ellipse 60% 40% at 35% 25%, ${brightenHex(mixedHex, 0.25)} 0%, ${mixedHex} 50%, ${darkenHex(mixedHex, 0.2)} 100%)`,
+                boxShadow:
+                  "inset 0 6px 16px rgba(0,0,0,0.3), inset 0 -2px 6px rgba(0,0,0,0.2), 0 -3px 10px rgba(0,0,0,0.2)",
               }}
             >
+              {/* HD specular highlight on dough surface */}
+              <div
+                className="absolute top-2 left-3 right-3 h-2 rounded-full opacity-70"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${brightenHex(mixedHex, 0.4)} 50%, transparent)`,
+                  filter: "blur(1.5px)",
+                }}
+              />
+
+              {/* HD Maillard browning — gradient from top (darker crust) to bottom (lighter crumb) */}
               {browning > 0.05 && (
                 <div
                   className="absolute inset-0 rounded-t-[50%]"
                   style={{
-                    background: `linear-gradient(180deg, rgba(${Math.round(80 - browning * 60)}, ${Math.round(40 - browning * 35)}, ${Math.round(15 - browning * 12)}, ${browning * 0.95}), transparent 80%)`,
+                    background:
+                      `linear-gradient(180deg,
+                        rgba(${Math.round(60 - browning * 50)}, ${Math.round(30 - browning * 28)}, ${Math.round(10 - browning * 8)}, ${browning * 0.92}) 0%,
+                        rgba(${Math.round(90 - browning * 55)}, ${Math.round(50 - browning * 30)}, ${Math.round(20 - browning * 12)}, ${browning * 0.6}) 40%,
+                        transparent 80%)`,
                     mixBlendMode: "multiply",
                   }}
                 />
               )}
-              {browning > 0.6 && (
+
+              {/* HD crust crackle — appears as browning intensifies */}
+              {browning > 0.4 && (
                 <div
-                  className="absolute inset-0 opacity-60"
+                  className="absolute inset-0 opacity-50"
                   style={{
                     backgroundImage:
-                      "radial-gradient(circle at 30% 40%, rgba(0,0,0,0.4) 0.5px, transparent 1.5px), radial-gradient(circle at 70% 30%, rgba(0,0,0,0.3) 0.4px, transparent 1.2px), radial-gradient(circle at 50% 60%, rgba(0,0,0,0.35) 0.5px, transparent 1.4px)",
-                    backgroundSize: "12px 12px, 14px 14px, 10px 10px",
+                      "radial-gradient(circle at 22% 35%, rgba(0,0,0,0.5) 0.4px, transparent 1.4px), radial-gradient(circle at 68% 25%, rgba(0,0,0,0.4) 0.5px, transparent 1.6px), radial-gradient(circle at 45% 55%, rgba(0,0,0,0.45) 0.4px, transparent 1.3px), radial-gradient(circle at 80% 45%, rgba(0,0,0,0.35) 0.4px, transparent 1.2px), radial-gradient(circle at 30% 70%, rgba(0,0,0,0.4) 0.3px, transparent 1.0px)",
+                    backgroundSize: "14px 14px, 16px 16px, 12px 12px, 18px 18px, 10px 10px",
+                  }}
+                />
+              )}
+
+              {/* HD crust blistering at high browning */}
+              {browning > 0.7 && (
+                <div
+                  className="absolute top-1 left-2 right-2 h-3 opacity-60"
+                  style={{
+                    background:
+                      `radial-gradient(circle at 25% 50%, ${darkenHex(mixedHex, 0.4)} 0.5px, transparent 1.5px),
+                       radial-gradient(circle at 55% 30%, ${darkenHex(mixedHex, 0.5)} 0.6px, transparent 1.8px),
+                       radial-gradient(circle at 75% 60%, ${darkenHex(mixedHex, 0.4)} 0.5px, transparent 1.4px)`,
+                    backgroundSize: "20px 8px, 24px 10px, 18px 7px",
+                  }}
+                />
+              )}
+
+              {/* Glossy sheen on lightly browned crust */}
+              {browning > 0.2 && browning < 0.7 && (
+                <div
+                  className="absolute top-1 left-4 right-4 h-1 rounded-full opacity-50"
+                  style={{
+                    background: "linear-gradient(90deg, transparent, rgba(255, 220, 160, 0.7), transparent)",
+                    filter: "blur(1px)",
                   }}
                 />
               )}
@@ -252,4 +295,31 @@ export function BowlContentsList() {
       </div>
     </div>
   )
+}
+
+// ─── HD color helpers ─────────────────────────────────────────────────────
+
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return `#${Math.round(r).toString(16).padStart(2, "0")}${Math.round(g).toString(16).padStart(2, "0")}${Math.round(b).toString(16).padStart(2, "0")}`
+}
+
+function brightenHex(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex)
+  return rgbToHex(
+    Math.min(255, r + (255 - r) * amount),
+    Math.min(255, g + (255 - g) * amount),
+    Math.min(255, b + (255 - b) * amount)
+  )
+}
+
+function darkenHex(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex)
+  return rgbToHex(r * (1 - amount), g * (1 - amount), b * (1 - amount))
 }

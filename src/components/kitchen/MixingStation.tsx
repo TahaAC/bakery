@@ -77,7 +77,30 @@ export function MixingStation() {
       {/* Left: bowl + controls */}
       <div className="flex flex-col items-center justify-start gap-4 min-h-0">
         {/* Stage with sunbeam ambient */}
-        <div className="relative w-full flex-1 min-h-[360px] rounded-xl border border-border bg-gradient-to-b from-[#fff5e0] to-[#f0e0c0] overflow-hidden flex items-center justify-center">
+        <div
+          className="relative w-full flex-1 min-h-[360px] rounded-xl border border-border overflow-hidden flex items-center justify-center"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 30%, #fff8e8 0%, #fff0d0 30%, #f0dca8 65%, #c89858 100%)",
+            boxShadow: "inset 0 0 60px rgba(120, 80, 40, 0.15), inset 0 8px 16px rgba(255,255,255,0.5)",
+          }}
+        >
+          {/* HD Counter top surface */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-1/4"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, rgba(180, 130, 70, 0.25) 50%, rgba(100, 60, 25, 0.55) 100%)",
+            }}
+          />
+          {/* HD Atmospheric vignette */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 50% at 50% 40%, transparent 0%, transparent 60%, rgba(80, 50, 20, 0.25) 100%)",
+            }}
+          />
           <div className="absolute inset-0 sunbeam" />
           {/* Flour dust particles while mixing */}
           {isMixing && speed > 4 && (

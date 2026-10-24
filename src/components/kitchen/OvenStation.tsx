@@ -121,7 +121,46 @@ export function OvenStation() {
     <div className="grid lg:grid-cols-[1fr_320px] gap-4 h-full">
       {/* Left: oven visualization */}
       <div className="flex flex-col items-center gap-4 min-h-0">
-        <div className="relative w-full flex-1 min-h-[420px] rounded-xl border border-border overflow-hidden flex items-center justify-center bg-gradient-to-b from-[#2a1f17] to-[#1a120c]">
+        <div
+          className="relative w-full flex-1 min-h-[420px] rounded-xl border border-border overflow-hidden flex items-center justify-center"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 30%, #3a2818 0%, #2a1f17 40%, #1a120c 80%, #0a0604 100%)",
+          }}
+        >
+          {/* Counter top surface (subtle wood) */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-1/3 opacity-60"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, rgba(74, 40, 24, 0.6) 40%, rgba(40, 22, 12, 0.9) 100%)",
+            }}
+          />
+          {/* HD Atmospheric depth haze */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 50% at 50% 40%, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%)",
+            }}
+          />
+          {/* Ambient particles in light */}
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <motion.span
+                key={i}
+                className="absolute rounded-full bg-amber-200/30"
+                style={{
+                  left: `${15 + i * 14}%`,
+                  top: `${20 + (i % 3) * 8}%`,
+                  width: 1.5 + (i % 2),
+                  height: 1.5 + (i % 2),
+                }}
+                animate={{ y: [0, -30, 0], opacity: [0.2, 0.7, 0.2] }}
+                transition={{ duration: 4 + i, repeat: Infinity, delay: i * 0.5 }}
+              />
+            ))}
+          </div>
           <OvenSVG
             ovenOn={ovenOn}
             ovenLight={ovenLight}
@@ -398,89 +437,257 @@ function OvenSVG({
   mixLevel: number
   isProofing: boolean
 }) {
+  // HD interior lighting — temperature-dependent color temperature
   const interiorBg = ovenOn
     ? ovenMode === "broil"
-      ? "radial-gradient(ellipse at 50% 0%, rgba(255,140,40,0.85), rgba(80,20,10,0.95) 70%)"
+      ? `radial-gradient(ellipse 80% 60% at 50% 0%,
+          rgba(255, 180, 80, 0.95) 0%,
+          rgba(255, 120, 40, 0.85) 25%,
+          rgba(180, 50, 15, 0.85) 55%,
+          rgba(60, 20, 10, 0.95) 90%)`
       : ovenMode === "proof"
-      ? "radial-gradient(ellipse at 50% 50%, rgba(180,140,90,0.4), rgba(40,30,20,0.9))"
-      : `radial-gradient(ellipse at 50% 30%, rgba(255,${Math.max(40, 200 - ovenTempC * 0.6)},40,0.7), rgba(60,20,10,0.95) 80%)`
-    : "radial-gradient(ellipse at 50% 30%, rgba(60,40,25,0.8), rgba(20,12,5,0.95))"
+      ? `radial-gradient(ellipse at 50% 50%,
+          rgba(220, 180, 130, 0.55) 0%,
+          rgba(120, 90, 60, 0.7) 50%,
+          rgba(40, 30, 20, 0.9) 100%)`
+      : `radial-gradient(ellipse 70% 55% at 50% 25%,
+          rgba(255, ${Math.max(60, 210 - ovenTempC * 0.55)}, 50, 0.85) 0%,
+          rgba(200, 70, 25, 0.7) 35%,
+          rgba(80, 25, 12, 0.9) 75%,
+          rgba(20, 12, 5, 0.98) 100%)`
+    : `radial-gradient(ellipse at 50% 30%,
+        rgba(80, 60, 40, 0.65) 0%,
+        rgba(35, 25, 15, 0.85) 50%,
+        rgba(15, 10, 5, 0.98) 100%)`
+
+  // Heating element color based on temperature
+  const elementColor = ovenMode === "broil"
+    ? "linear-gradient(90deg, #ff3300 0%, #ffaa00 15%, #ffff60 30%, #ffaa00 50%, #ffff60 70%, #ffaa00 85%, #ff3300 100%)"
+    : `linear-gradient(90deg,
+        #aa2200 0%,
+        #ff6600 10%,
+        #ffaa30 25%,
+        #ffcc66 50%,
+        #ffaa30 75%,
+        #ff6600 90%,
+        #aa2200 100%)`
 
   return (
-    <div className="relative w-full max-w-[480px] aspect-[5/4]">
-      {/* Oven body */}
-      <div className="absolute inset-0 rounded-2xl metal-steel shadow-2xl" />
+    <div className="relative w-full max-w-[520px] aspect-[5/4]">
+      {/* Ambient floor shadow under oven */}
+      <div
+        className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[88%] h-6 rounded-full"
+        style={{
+          background: "radial-gradient(ellipse, rgba(0,0,0,0.45), transparent 70%)",
+          filter: "blur(8px)",
+        }}
+      />
 
-      {/* Control panel strip (top) */}
-      <div className="absolute top-3 left-4 right-4 h-12 rounded-lg bg-black/70 backdrop-blur-sm flex items-center justify-between px-3 gap-3">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${ovenOn ? "bg-primary animate-pulse" : "bg-muted-foreground/40"}`} />
-          <span className="text-[10px] font-mono text-amber-300/90">MASTER_BAKER_VR</span>
-        </div>
-        {/* Digital readout */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-[8px] text-amber-300/60 leading-none">TEMP</div>
-            <div className="font-mono text-amber-300 text-sm leading-none">{ovenTempC}°C</div>
+      {/* Oven body — HD brushed stainless steel with depth */}
+      <div
+        className="absolute inset-0 rounded-2xl metal-steel"
+        style={{
+          boxShadow:
+            "0 30px 60px -12px rgba(0,0,0,0.5), 0 18px 32px -8px rgba(80,50,20,0.35), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -3px 6px rgba(0,0,0,0.3)",
+        }}
+      />
+
+      {/* Top vent strip (decorative detail) */}
+      <div
+        className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[30%] h-1 rounded-full"
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.4) 20%, rgba(0,0,0,0.4) 80%, transparent)",
+        }}
+      >
+        {Array.from({ length: 8 }).map((_, i) => (
+          <span
+            key={i}
+            className="absolute top-0 w-0.5 h-full bg-black/60"
+            style={{ left: `${10 + i * 11}%` }}
+          />
+        ))}
+      </div>
+
+      {/* Control panel strip (top) — HD with depth */}
+      <div
+        className="absolute top-5 left-5 right-5 h-14 rounded-lg flex items-center justify-between px-4 gap-3"
+        style={{
+          background:
+            "linear-gradient(180deg, #0a0c10 0%, #1a1e24 50%, #06080a 100%)",
+          boxShadow:
+            "inset 0 2px 4px rgba(0,0,0,0.8), inset 0 -1px 2px rgba(80,90,110,0.2), 0 2px 4px rgba(0,0,0,0.5)",
+          border: "1px solid rgba(80,90,110,0.3)",
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          {/* Power LED with realistic glow */}
+          <div className="relative">
+            <div
+              className={`w-2 h-2 rounded-full ${ovenOn ? "bg-emerald-400" : "bg-zinc-700"}`}
+              style={ovenOn ? {
+                boxShadow: "0 0 6px #34d399, 0 0 12px rgba(52, 211, 153, 0.6), inset 0 0 2px rgba(255,255,255,0.8)"
+              } : {}}
+            />
+            {ovenOn && (
+              <motion.div
+                className="absolute inset-0 rounded-full bg-emerald-400"
+                animate={{ opacity: [0.4, 0, 0.4], scale: [1, 1.8, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+              />
+            )}
           </div>
+          <span className="text-[10px] font-mono text-amber-300/90 tracking-wider">MASTER_BAKER_VR</span>
+        </div>
+
+        {/* Digital readout — HD VFD style */}
+        <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-[8px] text-amber-300/60 leading-none">MODE</div>
-            <div className="font-mono text-amber-300 text-sm leading-none uppercase">{ovenMode}</div>
+            <div className="text-[7px] text-amber-300/50 leading-none tracking-widest uppercase">Temp</div>
+            <div
+              className="font-mono text-amber-300 text-base leading-none mt-0.5"
+              style={{
+                textShadow: "0 0 4px rgba(251, 191, 36, 0.8), 0 0 8px rgba(251, 191, 36, 0.4)",
+              }}
+            >
+              {ovenTempC}°C
+            </div>
+          </div>
+          <div className="w-px h-6 bg-amber-300/20" />
+          <div className="text-right">
+            <div className="text-[7px] text-amber-300/50 leading-none tracking-widest uppercase">Mode</div>
+            <div
+              className="font-mono text-amber-300 text-base leading-none mt-0.5 uppercase"
+              style={{
+                textShadow: "0 0 4px rgba(251, 191, 36, 0.8), 0 0 8px rgba(251, 191, 36, 0.4)",
+              }}
+            >
+              {ovenMode}
+            </div>
           </div>
         </div>
-        {/* Rotary encoder */}
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 border border-zinc-600 flex items-center justify-center">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+
+        {/* Rotary encoder — HD machined aluminum */}
+        <div className="relative">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 30%, #d0d4d8 0%, #8a8e94 30%, #4a4e54 60%, #1a1e24 100%)",
+              boxShadow:
+                "inset 0 1px 2px rgba(255,255,255,0.6), inset 0 -2px 4px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.6)",
+              border: "1px solid rgba(0,0,0,0.5)",
+            }}
+          >
+            {/* Knurling texture */}
+            {Array.from({ length: 24 }).map((_, i) => (
+              <span
+                key={i}
+                className="absolute w-px h-1 bg-black/30"
+                style={{
+                  left: "50%",
+                  top: "1px",
+                  transformOrigin: "50% 18px",
+                  transform: `rotate(${i * 15}deg)`,
+                }}
+              />
+            ))}
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: "radial-gradient(circle at 30% 30%, #ffeaa0, #d97706 60%, #92400e)",
+                boxShadow: "0 0 4px rgba(251, 191, 36, 0.8), inset 0 0 1px rgba(255,255,255,0.6)",
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Oven door / window */}
+      {/* Oven door / window — HD with multi-layer glass effect */}
       <div
         className="absolute"
         style={{
-          top: "24%",
-          left: "8%",
-          right: "8%",
-          bottom: "10%",
-          borderRadius: 12,
+          top: "26%",
+          left: "7%",
+          right: "7%",
+          bottom: "11%",
+          borderRadius: 14,
           overflow: "hidden",
           background: interiorBg,
           boxShadow:
-            "inset 0 0 30px rgba(0,0,0,0.7), inset 0 0 80px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.4)",
+            "inset 0 0 40px rgba(0,0,0,0.85), inset 0 0 100px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5), 0 0 0 4px rgba(20, 25, 35, 0.6), 0 0 0 5px rgba(80, 90, 110, 0.2)",
         }}
       >
+        {/* Back wall of oven interior (depth) */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(40, 30, 20, 0.4) 0%, transparent 30%, transparent 70%, rgba(0, 0, 0, 0.6) 100%)",
+          }}
+        />
+
         {/* Heat-haze overlay */}
         {ovenOn && ovenMode !== "proof" && (
-          <div className="absolute inset-0 heat-haze opacity-40" />
+          <div className="absolute inset-0 heat-haze opacity-50" />
         )}
 
-        {/* Oven light cone */}
+        {/* Oven light cone — HD volumetric */}
         {ovenLight && (
           <div
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 70% 50% at 50% 10%, rgba(255,240,180,0.25), transparent 70%)",
+                "radial-gradient(ellipse 60% 50% at 50% 5%, rgba(255, 240, 180, 0.45) 0%, rgba(255, 220, 150, 0.2) 30%, transparent 70%)",
+              mixBlendMode: "screen",
             }}
           />
         )}
 
-        {/* Heating elements (top + bottom) */}
+        {/* HD Heating elements (top + bottom) with realistic glow */}
         {ovenOn && ovenMode !== "proof" && (
           <>
+            {/* Top broil element — U-shaped */}
+            <svg className="absolute top-1.5 left-3 right-3 h-3" viewBox="0 0 200 12" preserveAspectRatio="none">
+              <defs>
+                <filter id="elementGlowFilter" x="-50%" y="-200%" width="200%" height="500%">
+                  <feGaussianBlur stdDeviation="2.5" />
+                </filter>
+              </defs>
+              {/* Glow halo */}
+              <path
+                d="M 8 6 L 192 6"
+                stroke={ovenMode === "broil" ? "#ffcc40" : "#ff7700"}
+                strokeWidth="6"
+                strokeLinecap="round"
+                fill="none"
+                filter="url(#elementGlowFilter)"
+                opacity="0.85"
+              />
+              {/* Core element */}
+              <path
+                d="M 8 6 L 192 6"
+                stroke={ovenMode === "broil" ? "#ffffe0" : "#ffaa30"}
+                strokeWidth="2"
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* Highlights along element */}
+              {Array.from({ length: 12 }).map((_, i) => (
+                <circle
+                  key={i}
+                  cx={16 + i * 16}
+                  cy={6}
+                  r={0.8}
+                  fill="#ffffff"
+                  opacity={0.8}
+                />
+              ))}
+            </svg>
+            {/* Bottom bake element — hidden behind pan but glowing */}
             <div
-              className="absolute top-2 left-4 right-4 h-1 rounded-full element-glow"
+              className="absolute bottom-1.5 left-4 right-4 h-1 rounded-full element-glow"
               style={{
-                background: ovenMode === "broil"
-                  ? "linear-gradient(90deg, #ff4400, #ffaa00, #ff4400)"
-                  : "linear-gradient(90deg, #aa3300, #ff6600, #aa3300)",
-              }}
-            />
-            <div
-              className="absolute bottom-2 left-4 right-4 h-1 rounded-full"
-              style={{
-                background: "linear-gradient(90deg, #882200, #cc4400, #882200)",
-                filter: "drop-shadow(0 0 6px #ff5500)",
+                background: "linear-gradient(90deg, #882200 0%, #cc4400 20%, #ff6600 50%, #cc4400 80%, #882200 100%)",
               }}
             />
           </>
@@ -490,14 +697,19 @@ function OvenSVG({
         {hasBakeable && (
           <div className="absolute inset-0 flex items-end justify-center pb-[18%]">
             <div className="relative">
-              {/* Pan */}
+              {/* HD Pan with reflective top */}
               <div
-                className="w-44 h-3 rounded-sm"
+                className="w-44 h-3 rounded-sm relative overflow-hidden"
                 style={{
-                  background: "linear-gradient(180deg, #5a4a3a, #2a1f17)",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                  background:
+                    "linear-gradient(180deg, #4a3a2a 0%, #2a1f17 30%, #1a120c 70%, #0a0604 100%)",
+                  boxShadow:
+                    "0 4px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 1px rgba(180,140,90,0.4)",
                 }}
-              />
+              >
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-amber-200/40 to-transparent" />
+              </div>
+
               {/* Bowl contents rendered with BowlView (smaller, with rising/browning overlays) */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
                 <BowlView
@@ -509,45 +721,45 @@ function OvenSVG({
                 />
               </div>
 
-              {/* Steam particles when baking */}
+              {/* HD Steam particles when baking */}
               {ovenOn && riseLevel > 0.3 && (
                 <div className="absolute inset-0 pointer-events-none">
-                  {Array.from({ length: 6 }).map((_, i) => (
+                  {Array.from({ length: 8 }).map((_, i) => (
                     <span
                       key={i}
                       className="steam-particle"
                       style={{
-                        left: `${30 + i * 12}%`,
+                        left: `${25 + i * 10}%`,
                         bottom: "60%",
-                        width: `${8 + Math.random() * 8}px`,
-                        height: `${8 + Math.random() * 8}px`,
-                        ["--drift" as string]: `${(Math.random() - 0.5) * 20}px`,
-                        ["--dur" as string]: `${2 + Math.random() * 1.5}s`,
-                        animationDelay: `${i * 0.4}s`,
+                        width: `${10 + (i % 3) * 4}px`,
+                        height: `${10 + (i % 3) * 4}px`,
+                        ["--drift" as string]: `${(i - 4) * 4}px`,
+                        ["--dur" as string]: `${2.2 + (i % 3) * 0.6}s`,
+                        animationDelay: `${i * 0.35}s`,
                       }}
                     />
                   ))}
                 </div>
               )}
 
-              {/* Yeast activity bubbles during proofing */}
+              {/* HD Yeast activity bubbles during proofing */}
               {isProofing && (
                 <div className="absolute inset-0 pointer-events-none">
-                  {Array.from({ length: 10 }).map((_, i) => (
+                  {Array.from({ length: 12 }).map((_, i) => (
                     <motion.span
                       key={i}
-                      className="absolute rounded-full bg-white/40"
+                      className="absolute rounded-full bg-white/50"
                       style={{
-                        left: `${20 + Math.random() * 60}%`,
+                        left: `${20 + (i * 7) % 60}%`,
                         bottom: "40%",
-                        width: 2,
-                        height: 2,
+                        width: 2 + (i % 2),
+                        height: 2 + (i % 2),
                       }}
-                      animate={{ y: [0, -40], opacity: [0, 1, 0] }}
+                      animate={{ y: [0, -50], opacity: [0, 1, 0] }}
                       transition={{
-                        duration: 2 + Math.random(),
+                        duration: 2 + (i % 3) * 0.5,
                         repeat: Infinity,
-                        delay: i * 0.3,
+                        delay: i * 0.25,
                       }}
                     />
                   ))}
@@ -564,33 +776,82 @@ function OvenSVG({
           </div>
         )}
 
-        {/* Glass reflection */}
+        {/* HD Glass reflection — multi-layer */}
+        <div className="absolute inset-0 pointer-events-none glass-pane" />
+
+        {/* Strong diagonal streak reflection */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.12) 45%, transparent 60%)",
+            background:
+              "linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 44%, rgba(255,255,255,0.32) 47%, rgba(255,255,255,0.10) 50%, transparent 58%)",
+            mixBlendMode: "screen",
           }}
         />
-        {/* Condensation */}
+
+        {/* Condensation droplets (HD) */}
         {ovenOn && ovenTempC < 110 && ovenTempC > 60 && (
           <div
-            className="absolute inset-0 pointer-events-none opacity-30"
+            className="absolute inset-0 pointer-events-none opacity-50"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 30% 40%, rgba(255,255,255,0.6) 1px, transparent 2px), radial-gradient(circle at 60% 70%, rgba(255,255,255,0.4) 1px, transparent 2px), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.5) 1px, transparent 2px)",
-              backgroundSize: "30px 30px, 40px 40px, 25px 25px",
+                "radial-gradient(circle at 12% 24%, rgba(255,255,255,0.85) 1px, transparent 2px), radial-gradient(circle at 28% 56%, rgba(255,255,255,0.65) 1.2px, transparent 2.5px), radial-gradient(circle at 52% 32%, rgba(255,255,255,0.75) 1px, transparent 2px), radial-gradient(circle at 76% 64%, rgba(255,255,255,0.55) 1.4px, transparent 2.8px), radial-gradient(circle at 88% 28%, rgba(255,255,255,0.7) 1px, transparent 2px), radial-gradient(circle at 42% 78%, rgba(255,255,255,0.5) 1.3px, transparent 2.5px)",
+              backgroundSize: "60px 60px, 80px 80px, 50px 50px, 70px 70px, 55px 55px, 65px 65px",
             }}
           />
         )}
+
+        {/* Subtle film grain inside oven */}
+        <div className="absolute inset-0 film-grain" />
       </div>
 
-      {/* Door handle */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-[6%] w-3/4 h-2 rounded-full bg-gradient-to-r from-zinc-600 via-zinc-400 to-zinc-600 shadow-md" />
+      {/* HD Door handle — brushed aluminum bar */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 bottom-[5.5%] w-[78%] h-2.5 rounded-full"
+        style={{
+          background:
+            "linear-gradient(180deg, #d4d8dc 0%, #8a8e94 35%, #5a5e64 60%, #2a2e34 100%)",
+          boxShadow:
+            "inset 0 1px 1px rgba(255,255,255,0.6), inset 0 -1px 2px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          className="absolute inset-x-2 top-0.5 h-0.5 rounded-full"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)" }}
+        />
+      </div>
 
-      {/* Brand badge */}
-      <div className="absolute bottom-2 left-4 text-[8px] font-mono text-zinc-500/80">
+      {/* Brand badge — HD etched metal */}
+      <div
+        className="absolute bottom-2.5 left-5 text-[8px] font-mono tracking-widest"
+        style={{
+          color: "rgba(80, 90, 110, 0.8)",
+          textShadow: "0 1px 0 rgba(255,255,255,0.4), 0 -1px 0 rgba(0,0,0,0.5)",
+        }}
+      >
         Z.AI CULINARY · MODEL VR-300
       </div>
+
+      {/* Model badge on right */}
+      <div
+        className="absolute bottom-2.5 right-5 text-[8px] font-mono tracking-widest"
+        style={{
+          color: "rgba(80, 90, 110, 0.8)",
+          textShadow: "0 1px 0 rgba(255,255,255,0.4), 0 -1px 0 rgba(0,0,0,0.5)",
+        }}
+      >
+        CONVECTION · 300°C MAX
+      </div>
+
+      {/* Edge highlights (top-left light wrap) */}
+      <div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 4%, transparent 96%, rgba(0,0,0,0.2) 100%)",
+          mixBlendMode: "screen",
+        }}
+      />
     </div>
   )
 }

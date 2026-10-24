@@ -71,7 +71,29 @@ export function StandMixerStation() {
     <div className="grid lg:grid-cols-[1fr_320px] gap-4 h-full">
       {/* Left: mixer visualization */}
       <div className="flex flex-col items-center gap-4 min-h-0">
-        <div className="relative w-full flex-1 min-h-[380px] rounded-xl border border-border bg-gradient-to-b from-[#1a1410] to-[#2a1f17] overflow-hidden flex items-end justify-center pb-6">
+        <div
+          className="relative w-full flex-1 min-h-[380px] rounded-xl border border-border overflow-hidden flex items-end justify-center pb-6"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 60% at 50% 35%, #3a2818 0%, #1a1410 50%, #0a0804 100%)",
+          }}
+        >
+          {/* Counter top */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-1/4 opacity-70"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, rgba(60, 40, 25, 0.7) 50%, rgba(30, 20, 12, 0.95) 100%)",
+            }}
+          />
+          {/* Atmospheric depth */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 50% at 50% 40%, transparent 0%, transparent 60%, rgba(0, 0, 0, 0.5) 100%)",
+            }}
+          />
           {/* Ambient spot light */}
           <div
             className="absolute inset-0"

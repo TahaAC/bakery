@@ -153,85 +153,139 @@ export function ShowcaseStation() {
     <div className="grid lg:grid-cols-[1fr_340px] gap-4 h-full relative">
       {/* ─── Left: Customer Display Case ─── */}
       <div className="flex flex-col gap-3 min-h-0 relative">
-        {/* The display case */}
+        {/* The HD display case — bakery window with dramatic spotlight */}
         <div
           className="relative flex-1 min-h-[420px] rounded-2xl overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 50% 35%, #fff8e8 0%, #f0e0c0 40%, #c8a878 80%, #8a6840 100%)",
+              "radial-gradient(ellipse 90% 70% at 50% 25%, #fff5d8 0%, #f0dca8 25%, #c89858 60%, #6a4520 90%, #2a1808 100%)",
             boxShadow:
-              "inset 0 0 60px rgba(120, 80, 40, 0.18), inset 0 4px 12px rgba(255,255,255,0.4)",
+              "inset 0 0 80px rgba(120, 80, 40, 0.25), inset 0 8px 20px rgba(255,255,255,0.5), inset 0 -12px 30px rgba(40, 20, 5, 0.6)",
           }}
         >
-          {/* Display case glass overlay (subtle reflection) */}
+          {/* HD Bakery window back wall texture (subtle tile) */}
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, transparent 0px, transparent 60px, rgba(120, 80, 40, 0.15) 60px, rgba(120, 80, 40, 0.15) 61px), repeating-linear-gradient(90deg, transparent 0px, transparent 60px, rgba(120, 80, 40, 0.15) 60px, rgba(120, 80, 40, 0.15) 61px)",
+            }}
+          />
+
+          {/* HD Display case glass overlay — multi-layer reflections */}
+          <div className="absolute inset-0 pointer-events-none glass-pane" />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.15) 45%, transparent 60%)",
+                "linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.20) 38%, rgba(255,255,255,0.40) 45%, rgba(255,255,255,0.15) 52%, transparent 65%)",
+              mixBlendMode: "screen",
+            }}
+          />
+          {/* Vertical streak reflection */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-50"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 18%, rgba(255,255,255,0.10) 20%, transparent 22%, transparent 75%, rgba(255,255,255,0.08) 77%, transparent 79%)",
             }}
           />
 
-          {/* Ambient spotlight from above */}
+          {/* HD Volumetric spotlight from above — bakery display beam */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse 50% 30% at 50% 10%, rgba(255,240,180,0.6), transparent 70%)",
+                "radial-gradient(ellipse 40% 50% at 50% 5%, rgba(255, 245, 200, 0.7) 0%, rgba(255, 235, 170, 0.3) 30%, transparent 70%)",
+              mixBlendMode: "screen",
+            }}
+          />
+          {/* Light shaft cone */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255, 245, 200, 0.25) 0%, transparent 60%)",
+              clipPath: "polygon(40% 0%, 60% 0%, 80% 100%, 20% 100%)",
+              mixBlendMode: "screen",
             }}
           />
 
-          {/* Floating dust motes in the spotlight */}
+          {/* HD Floating dust motes in the spotlight (more, with depth) */}
           <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 18 }).map((_, i) => (
               <motion.span
                 key={i}
-                className="absolute rounded-full bg-amber-200/40"
+                className="absolute rounded-full"
                 style={{
-                  left: `${20 + (i * 7) % 60}%`,
-                  top: `${15 + (i * 11) % 30}%`,
-                  width: 2 + (i % 3),
-                  height: 2 + (i % 3),
+                  left: `${15 + (i * 5) % 70}%`,
+                  top: `${10 + (i * 11) % 40}%`,
+                  width: 1 + (i % 3),
+                  height: 1 + (i % 3),
+                  background: i % 4 === 0 ? "rgba(255, 220, 150, 0.7)" : "rgba(255, 245, 200, 0.5)",
                 }}
                 animate={{
-                  y: [0, -20, 0],
-                  opacity: [0.2, 0.7, 0.2],
+                  y: [0, -25, 0],
+                  x: [(i % 2 === 0 ? -8 : 8), 0, (i % 2 === 0 ? -8 : 8)],
+                  opacity: [0.2, 0.8, 0.2],
                 }}
                 transition={{
-                  duration: 4 + (i % 3),
+                  duration: 5 + (i % 4),
                   repeat: Infinity,
-                  delay: i * 0.4,
+                  delay: i * 0.3,
                 }}
               />
             ))}
           </div>
 
-          {/* Glass pedestal */}
-          <div className="absolute left-1/2 bottom-[12%] -translate-x-1/2 w-[55%] h-4">
+          {/* HD Glass pedestal — cylindrical with reflections */}
+          <div className="absolute left-1/2 bottom-[12%] -translate-x-1/2 w-[55%] h-5">
+            {/* Top plate */}
             <div
-              className="w-full h-full rounded-full"
+              className="absolute inset-x-0 top-0 h-2 rounded-full"
               style={{
                 background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(200,200,220,0.4))",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  "linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(220, 230, 245, 0.7) 60%, rgba(180, 195, 215, 0.5) 100%)",
+                boxShadow:
+                  "inset 0 1px 1px rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.3)",
               }}
             />
+            {/* Reflection on plate */}
             <div
-              className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[90%] h-3 rounded-full"
+              className="absolute top-0.5 left-2 right-2 h-0.5 rounded-full"
               style={{
-                background: "rgba(0,0,0,0.18)",
-                filter: "blur(6px)",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)",
+              }}
+            />
+            {/* Stem */}
+            <div
+              className="absolute top-2 bottom-0 left-1/2 -translate-x-1/2 w-[15%] rounded-b"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(220, 230, 245, 0.6) 0%, rgba(160, 175, 195, 0.4) 100%)",
+              }}
+            />
+            {/* Soft contact shadow */}
+            <div
+              className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[90%] h-4 rounded-full"
+              style={{
+                background: "rgba(0,0,0,0.35)",
+                filter: "blur(8px)",
               }}
             />
           </div>
-          {/* Pedestal stem */}
+
+          {/* Bakery floor (counter top edge) */}
           <div
-            className="absolute left-1/2 bottom-[8%] -translate-x-1/2 w-[8%] h-[6%]"
+            className="absolute inset-x-0 bottom-0 h-[8%]"
             style={{
               background:
-                "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(180,180,200,0.5))",
+                "linear-gradient(180deg, transparent 0%, rgba(80, 50, 20, 0.4) 30%, rgba(40, 25, 10, 0.7) 100%)",
             }}
           />
+
+          {/* Subtle film grain */}
+          <div className="absolute inset-0 film-grain" />
 
           {/* The Cake itself */}
           <CakeDisplay

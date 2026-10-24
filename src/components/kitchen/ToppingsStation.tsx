@@ -237,7 +237,8 @@ export function ToppingsStation() {
           className="relative flex-1 min-h-[340px] sm:min-h-[420px] rounded-2xl overflow-hidden select-none"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 40%, #fff5e0 0%, #f0e0c0 50%, #d9c8a8 100%)",
+              "radial-gradient(ellipse 90% 70% at 50% 30%, #fff8e8 0%, #fff0d0 30%, #f0dca8 60%, #c89858 90%, #8a6028 100%)",
+            boxShadow: "inset 0 0 80px rgba(120, 80, 40, 0.25), inset 0 8px 20px rgba(255,255,255,0.5)",
             touchAction: selectedTopping ? "none" : "auto",
             cursor: selectedTopping ? "crosshair" : "default",
           }}
@@ -250,18 +251,41 @@ export function ToppingsStation() {
           {/* Ambient sunbeam */}
           <div className="absolute inset-0 sunbeam pointer-events-none" />
 
-          {/* Serving plate */}
+          {/* HD Serving plate — porcelain with rim and depth */}
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               width: "78%",
               height: "78%",
               background:
-                "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(240,230,210,0.8) 60%, rgba(200,180,150,0.6) 100%)",
+                "radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.98) 0%, rgba(250, 245, 235, 0.95) 25%, rgba(232, 220, 200, 0.88) 55%, rgba(180, 160, 130, 0.7) 90%, rgba(120, 95, 60, 0.5) 100%)",
               boxShadow:
-                "0 12px 36px rgba(80,50,20,0.25), inset 0 -6px 18px rgba(120,80,40,0.18)",
+                "0 18px 48px -8px rgba(40, 25, 10, 0.4), 0 8px 18px -4px rgba(80, 50, 20, 0.3), inset 0 -8px 20px rgba(120, 80, 40, 0.25), inset 0 4px 10px rgba(255, 255, 255, 0.7), 0 0 0 2px rgba(220, 200, 170, 0.4)",
             }}
-          />
+          >
+            {/* Plate rim highlight */}
+            <div
+              className="absolute inset-2 rounded-full pointer-events-none"
+              style={{
+                boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(80, 50, 20, 0.15)",
+              }}
+            />
+            {/* Plate inner well (subtle depression) */}
+            <div
+              className="absolute inset-[8%] rounded-full pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse at 50% 50%, transparent 70%, rgba(80, 50, 20, 0.08) 100%)",
+              }}
+            />
+            {/* Specular highlight on plate */}
+            <div
+              className="absolute top-3 left-6 right-1/2 h-2 rounded-full opacity-70 pointer-events-none"
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)",
+                filter: "blur(1.5px)",
+              }}
+            />
+          </div>
 
           {/* Baked good (the pastry being decorated) */}
           {canDecorateRaw ? (
