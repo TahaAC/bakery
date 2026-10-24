@@ -13,7 +13,20 @@ const LESSONS_LOOKUP = Object.fromEntries(LESSONS.map((l) => [l.id, l]))
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type StationId = "bench" | "pantry" | "mixing" | "mixer" | "oven" | "toppings" | "showcase" | "school" | "sink" | "recipe"
+export type StationId = "bench" | "pantry" | "mixing" | "mixer" | "oven" | "toppings" | "icecream" | "showcase" | "school" | "sink" | "recipe"
+
+/** Cake/pan shape — determines how the finished bake looks in the showcase */
+export type BakeShape =
+  | "round"      // Classic round layer cake
+  | "square"     // Square sheet cake
+  | "cupcake"    // Cupcakes (3 visible)
+  | "bundt"      // Bundt ring cake
+  | "loaf"       // Loaf / bread pan
+  | "star"       // Cartoon star shape (kids)
+  | "heart"      // Cartoon heart shape (kids)
+  | "bear"       // Cartoon bear face (kids)
+  | "dino"       // Cartoon dinosaur (kids)
+  | "rocket"     // Cartoon rocket (kids)
 
 export interface BowlIngredient {
   ingredientId: string
@@ -100,12 +113,41 @@ interface KitchenState {
   ovenTimerSec: number // remaining seconds
   ovenTimerTotal: number
   baking: BakingState
+  /** Selected cake/pan shape — determines the finished bake's appearance */
+  bakeShape: BakeShape
+  setBakeShape: (shape: BakeShape) => void
   setOvenTemp: (c: number) => void
   setOvenMode: (m: OvenMode) => void
   setOvenOn: (on: boolean) => void
   toggleOvenLight: () => void
   setOvenTimer: (sec: number) => void
   tickOven: (deltaSec: number) => void
+
+  // ─── Ice Cream station ───
+  /** Ingredients added to the ice cream churner (separate from the bake bowl) */
+  iceCreamBowl: BowlIngredient[]
+  /** Selected ice cream flavor base (vanilla/chocolate/strawberry/matcha/mango) */
+  iceCreamFlavor: string
+  /** Churn progress 0..1 */
+  iceCreamChurnLevel: number
+  /** Whether the churner is running */
+  iceCreamChurning: boolean
+  /** Freeze progress 0..1 (after churning, before serving) */
+  iceCreamFreezeLevel: number
+  /** Status of the ice cream making process */
+  iceCreamStatus: "empty" | "mixing" | "churning" | "freezing" | "ready"
+  /** Scoop count served (0 = whole tub) */
+  iceCreamScoops: number
+  addToIceCreamBowl: (ingredientId: string, grams?: number) => void
+  removeFromIceCreamBowl: (ingredientId: string) => void
+  clearIceCreamBowl: () => void
+  setIceCreamFlavor: (flavor: string) => void
+  setIceCreamChurning: (on: boolean) => void
+  incrementIceCreamChurn: (delta: number) => void
+  startIceCreamFreeze: () => void
+  tickIceCreamFreeze: (deltaSec: number) => void
+  serveIceCreamScoop: () => void
+  resetIceCream: () => void
 
   // ─── Sink / clean-up ───
   utensils: Utensil[]
@@ -294,6 +336,7 @@ export const useKitchen = create<KitchenState>((set, get) => ({
       mixer: "Engaged the Stand Mixer",
       oven: "Opened the Smart Oven",
       toppings: "Opened the Toppings Station",
+      icecream: "Opened the Ice Cream Station",
       showcase: "Presented the bake at the Showcase",
       school: "Opened Bake School",
       sink: "Went to the Sink",
@@ -380,6 +423,11 @@ export const useKitchen = create<KitchenState>((set, get) => ({
     brownLevel: 0,
     donenessLabel: "Raw",
   },
+  bakeShape: "round",
+  setBakeShape: (shape) => {
+    set({ bakeShape: shape })
+    get().pushLog(`Selected shape: ${shape}`, "action")
+  },
   setOvenTemp: (c) => {
     const clamped = Math.min(300, Math.max(50, Math.round(c)))
     set({ ovenTempC: clamped })
@@ -448,6 +496,100 @@ export const useKitchen = create<KitchenState>((set, get) => ({
         utensils: st.utensils.map((u) => (u.state === "clean" ? { ...u, state: "dirty" } : u)),
       }))
     }
+  },
+
+  // ─── Ice Cream state ───
+  iceCreamBowl: [],
+  iceCreamFlavor: "vanilla",
+  iceCreamChurnLevel: 0,
+  iceCreamChurning: false,
+  iceCreamFreezeLevel: 0,
+  iceCreamStatus: "empty",
+  iceCreamScoops: 0,
+  addToIceCreamBowl: (ingredientId, gramsOverride) => {
+    const ing = getIngredient(ingredientId)
+    if (!ing) return
+    const grams = gramsOverride ?? ing.defaultGrams
+    set((s) => {
+      const existing = s.iceCreamBowl.find((b) => b.ingredientId === ingredientId)
+      let iceCreamBowl: BowlIngredient[]
+      if (existing) {
+        iceCreamBowl = s.iceCreamBowl.map((b) =>
+          b.ingredientId === ingredientId ? { ...b, grams: b.grams + grams } : b
+        )
+      } else {
+        iceCreamBowl = [...s.iceCreamBowl, { ingredientId, grams }]
+      }
+      const status = s.iceCreamStatus === "empty" ? "mixing" : s.iceCreamStatus
+      return { iceCreamBowl, iceCreamStatus: status }
+    })
+    get().pushLog(`Added ${grams}g of ${ing.name} to ice cream bowl`, "action")
+  },
+  removeFromIceCreamBowl: (ingredientId) => {
+    const ing = getIngredient(ingredientId)
+    set((s) => ({ iceCreamBowl: s.iceCreamBowl.filter((b) => b.ingredientId !== ingredientId) }))
+    if (ing) get().pushLog(`Removed ${ing.name} from ice cream bowl`, "action")
+  },
+  clearIceCreamBowl: () => {
+    set({
+      iceCreamBowl: [],
+      iceCreamChurnLevel: 0,
+      iceCreamChurning: false,
+      iceCreamFreezeLevel: 0,
+      iceCreamStatus: "empty",
+      iceCreamScoops: 0,
+    })
+    get().pushLog("Cleared ice cream bowl", "action")
+  },
+  setIceCreamFlavor: (flavor) => {
+    set({ iceCreamFlavor: flavor })
+    get().pushLog(`Selected ice cream flavor: ${flavor}`, "action")
+  },
+  setIceCreamChurning: (on) => {
+    set({ iceCreamChurning: on })
+    if (on) {
+      set((s) => ({ iceCreamStatus: s.iceCreamStatus === "mixing" ? "churning" : s.iceCreamStatus }))
+    }
+    get().pushLog(on ? "Started churning ice cream" : "Stopped churning", "action")
+  },
+  incrementIceCreamChurn: (delta) => {
+    set((s) => {
+      const churn = Math.min(1, Math.max(0, s.iceCreamChurnLevel + delta))
+      const status = churn >= 1 ? "freezing" : s.iceCreamStatus === "churning" ? "churning" : s.iceCreamStatus
+      return { iceCreamChurnLevel: churn, iceCreamStatus: status }
+    })
+  },
+  startIceCreamFreeze: () => {
+    set({ iceCreamStatus: "freezing", iceCreamChurning: false })
+    get().pushLog("Started freezing ice cream", "action")
+  },
+  tickIceCreamFreeze: (deltaSec) => {
+    const s = get()
+    if (s.iceCreamStatus !== "freezing") return
+    // Freeze completes in ~30 seconds of simulation time
+    const freezeRate = 0.033 * deltaSec
+    const newFreeze = Math.min(1, s.iceCreamFreezeLevel + freezeRate)
+    const status = newFreeze >= 1 ? "ready" : "freezing"
+    set({ iceCreamFreezeLevel: newFreeze, iceCreamStatus: status })
+    if (status === "ready" && s.iceCreamStatus !== "ready") {
+      get().pushLog("Ice cream is frozen and ready to serve!", "action")
+    }
+  },
+  serveIceCreamScoop: () => {
+    set((s) => ({ iceCreamScoops: s.iceCreamScoops + 1 }))
+    get().pushLog("Served a scoop of ice cream", "action")
+  },
+  resetIceCream: () => {
+    set({
+      iceCreamBowl: [],
+      iceCreamChurnLevel: 0,
+      iceCreamChurning: false,
+      iceCreamFreezeLevel: 0,
+      iceCreamStatus: "empty",
+      iceCreamScoops: 0,
+      iceCreamFlavor: "vanilla",
+    })
+    get().pushLog("Reset ice cream station", "action")
   },
 
   utensils: makeUtensils(),

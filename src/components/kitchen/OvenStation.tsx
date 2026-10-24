@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { BowlView } from "./BowlView"
+import { ShapeSelector } from "./ShapeSelector"
 import { useKitchen, bowlLayers, type OvenMode } from "@/lib/kitchen-store"
 
 const MODES: { id: OvenMode; label: string; icon: typeof Fan; minTemp: number; maxTemp: number; defaultTemp: number }[] = [
@@ -267,6 +268,12 @@ export function OvenStation() {
           <p className="text-xs text-muted-foreground">
             Brushed stainless steel. Dual-pane glass with heat-haze distortion. Set temperature, mode, and timer.
           </p>
+        </div>
+
+        {/* Cake Shape selector */}
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium">Cake Shape</span>
+          <ShapeSelector compact />
         </div>
 
         {/* Mode selector */}

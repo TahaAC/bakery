@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ShoppingBasket,
@@ -13,16 +13,15 @@ import {
   Mic,
   MicOff,
   FlaskConical,
-  ScrollText,
-  Trash2,
+  ChefHat,
   Eye,
   Home,
   GraduationCap,
+  IceCream as IceCreamIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useKitchen, type StationId } from "@/lib/kitchen-store"
-import { useMounted, formatTimeHMS } from "@/hooks/use-mounted"
 import { useLessonTracker } from "@/hooks/use-lesson-tracker"
 import { getLesson } from "@/lib/lessons"
 import { PantryStation } from "./PantryStation"
@@ -37,6 +36,7 @@ import { VoiceAssistant } from "./VoiceAssistant"
 import { ScienceOverlay } from "./ScienceOverlay"
 import { KitchenBench } from "./KitchenBench"
 import { BakeSchoolStation } from "./BakeSchoolStation"
+import { IceCreamStation } from "./IceCreamStation"
 import { MascotBubble, CelebrationOverlay } from "./MascotOverlay"
 import { HiraLogo } from "./HiraLogo"
 import { BowlContentsList } from "./BowlView"
@@ -54,19 +54,11 @@ const STATIONS: {
   { id: "mixer", label: "Stand Mixer", icon: Microwave, description: "Knead & develop gluten" },
   { id: "oven", label: "Smart Oven", icon: Flame, description: "Bake with real-time physics" },
   { id: "toppings", label: "Toppings", icon: SparklesIcon, description: "Decorate your bake (touch-friendly)" },
+  { id: "icecream", label: "Ice Cream", icon: IceCreamIcon, description: "Churn & freeze homemade ice cream" },
   { id: "showcase", label: "Showcase", icon: Eye, description: "Display finished cake for the customer" },
   { id: "sink", label: "Sink", icon: Droplets, description: "Wash utensils" },
   { id: "recipe", label: "Recipe", icon: FileText, description: "Export printable card" },
 ]
-
-const LOG_COLORS: Record<string, string> = {
-  info: "text-muted-foreground",
-  action: "text-foreground",
-  thermal: "text-primary",
-  science: "text-accent-foreground",
-  voice: "text-blue-600",
-  warning: "text-destructive",
-}
 
 export function KitchenApp() {
   const activeStation = useKitchen((s) => s.activeStation)
@@ -78,8 +70,6 @@ export function KitchenApp() {
   const ovenOn = useKitchen((s) => s.ovenOn)
   const ovenTempC = useKitchen((s) => s.ovenTempC)
   const utensils = useKitchen((s) => s.utensils)
-  const log = useKitchen((s) => s.log)
-  const clearLog = useKitchen((s) => s.clearLog)
   const voiceAssistant = useKitchen((s) => s.voiceAssistant)
   const toggleVoice = useKitchen((s) => s.toggleVoice)
   const scienceOverlay = useKitchen((s) => s.scienceOverlay)
@@ -89,10 +79,6 @@ export function KitchenApp() {
 
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [scienceOpen, setScienceOpen] = useState(false)
-  const logEndRef = useRef<HTMLDivElement>(null)
-  // Defers rendering of locale-sensitive time strings until after hydration
-  // so SSR HTML matches the first client render.
-  const mounted = useMounted()
   // Auto-track lesson progress + unlock badges based on store state
   useLessonTracker()
 
@@ -103,11 +89,6 @@ export function KitchenApp() {
   useEffect(() => {
     setScienceOpen(scienceOverlay)
   }, [scienceOverlay])
-
-  // Auto-scroll log
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [log])
 
   const dirtyCount = utensils.filter((u) => u.state !== "clean").length
   const totalMass = bowl.reduce((a, b) => a + b.grams, 0)
@@ -121,6 +102,7 @@ export function KitchenApp() {
       case "mixer": return <StandMixerStation />
       case "oven": return <OvenStation />
       case "toppings": return <ToppingsStation />
+      case "icecream": return <IceCreamStation />
       case "showcase": return <ShowcaseStation />
       case "sink": return <SinkStation />
       case "recipe": return <RecipeExporter />
@@ -272,7 +254,7 @@ export function KitchenApp() {
           </AnimatePresence>
         </main>
 
-        {/* Side panel: bowl + log */}
+        {/* Side panel: bowl contents only (action log removed) */}
         <aside className="hidden lg:flex flex-col gap-3 min-h-0">
           {/* Bowl contents */}
           <div className="rounded-lg border border-border bg-card p-3">
@@ -284,70 +266,18 @@ export function KitchenApp() {
             </div>
             <BowlContentsList />
           </div>
-
-          {/* Action log */}
-          <div className="rounded-lg border border-border bg-card p-3 flex-1 min-h-0 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <ScrollText className="w-3 h-3" /> Action Log
-              </h3>
-              <button
-                onClick={clearLog}
-                className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1"
-                title="Clear log"
-              >
-                <Trash2 className="w-3 h-3" /> Clear
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto kitchen-scrollbar space-y-1 text-xs">
-              {log.slice().reverse().map((entry) => (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, x: 6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`leading-snug ${LOG_COLORS[entry.kind] ?? "text-foreground"}`}
-                >
-                  <span className="font-mono text-[10px] text-muted-foreground/70 mr-1.5">
-                    {mounted ? formatTimeHMS(entry.time) : "--:--:--"}
-                  </span>
-                  {entry.text}
-                </motion.div>
-              ))}
-              <div ref={logEndRef} />
-            </div>
-          </div>
         </aside>
       </div>
 
-      {/* ─── Mobile log toggle (collapsible) ─── */}
+      {/* ─── Mobile bowl toggle (collapsible, no action log) ─── */}
       <details className="lg:hidden border-t border-border bg-card print:hidden">
         <summary className="px-4 py-2 text-sm font-semibold flex items-center gap-2 cursor-pointer">
-          <ScrollText className="w-4 h-4" />
-          Bowl & Log
-          <Badge variant="outline" className="ml-auto text-[10px]">{log.length}</Badge>
+          <ChefHat className="w-4 h-4" />
+          Bowl Contents
+          <Badge variant="outline" className="ml-auto text-[10px]">{totalMass}g</Badge>
         </summary>
-        <div className="px-4 pb-3 space-y-3">
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              Bowl Contents
-            </h3>
-            <BowlContentsList />
-          </div>
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              Action Log
-            </h3>
-            <div className="max-h-48 overflow-y-auto kitchen-scrollbar space-y-1 text-xs">
-              {log.slice().reverse().map((entry) => (
-                <div key={entry.id} className={`leading-snug ${LOG_COLORS[entry.kind] ?? "text-foreground"}`}>
-                  <span className="font-mono text-[10px] text-muted-foreground/70 mr-1.5">
-                    {mounted ? formatTimeHMS(entry.time) : "--:--:--"}
-                  </span>
-                  {entry.text}
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="px-4 pb-3">
+          <BowlContentsList />
         </div>
       </details>
 

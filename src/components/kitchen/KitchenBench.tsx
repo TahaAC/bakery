@@ -89,6 +89,16 @@ const BENCH_STATIONS: BenchStation[] = [
     accent: "#b91c1c",
     category: "bake",
   },
+  {
+    id: "icecream",
+    label: "Ice Cream",
+    emoji: "🍨",
+    icon: SparklesIcon,
+    description: "Churn & freeze homemade ice cream",
+    gradient: "from-sky-50 to-cyan-100",
+    accent: "#0891b2",
+    category: "bake",
+  },
   // Finish
   {
     id: "toppings",
